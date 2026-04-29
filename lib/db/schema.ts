@@ -77,6 +77,8 @@ export const sihtAgents = sqliteTable("siht_agents", {
   name: text("name").notNull(),
   agentType: text("agent_type").notNull().default("job_search"), // "job_search" | "company_watcher"
   desiredRole: text("desired_role"),
+  profileSummary: text("profile_summary"),
+  searchTerms: text("search_terms"), // JSON string: string[]
   salaryMin: integer("salary_min"),
   salaryMax: integer("salary_max"),
   locationPreference: text("location_preference"),

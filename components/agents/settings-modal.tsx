@@ -13,6 +13,7 @@ interface SettingsModalProps {
   agentType: string;
   initialData: {
     name: string;
+    profileSummary?: string;
     desiredRole?: string;
     salaryMin?: string;
     salaryMax?: string;
@@ -30,7 +31,6 @@ const locationOptions = [
 ];
 
 const frequencyOptions = [
-  { value: "hourly", label: "Every hour" },
   { value: "daily", label: "Once a day" },
   { value: "weekly", label: "Once a week" },
 ];
@@ -47,7 +47,9 @@ export function SettingsModal({
   const [error, setError] = useState("");
 
   const [name, setName] = useState(initialData.name);
-  const [desiredRole, setDesiredRole] = useState(initialData.desiredRole ?? "");
+  const [profileSummary, setProfileSummary] = useState(
+    initialData.profileSummary ?? initialData.desiredRole ?? ""
+  );
   const [salaryMin, setSalaryMin] = useState(initialData.salaryMin ?? "");
   const [salaryMax, setSalaryMax] = useState(initialData.salaryMax ?? "");
   const [locationPreference, setLocationPreference] = useState(
@@ -62,7 +64,7 @@ export function SettingsModal({
   useEffect(() => {
     if (open) {
       setName(initialData.name);
-      setDesiredRole(initialData.desiredRole ?? "");
+      setProfileSummary(initialData.profileSummary ?? initialData.desiredRole ?? "");
       setSalaryMin(initialData.salaryMin ?? "");
       setSalaryMax(initialData.salaryMax ?? "");
       setLocationPreference(initialData.locationPreference ?? "");
@@ -83,7 +85,11 @@ export function SettingsModal({
 
     const payload: Record<string, unknown> = { name, frequency };
 
-    if (desiredRole) payload.desiredRole = desiredRole;
+    if (profileSummary) {
+      payload.profileSummary = profileSummary;
+      // Clear cached searchTerms so runner re-expands from new summary
+      payload.searchTerms = "";
+    }
 
     if (isJobSearch) {
       if (salaryMin) payload.salaryMin = Number(salaryMin);
@@ -154,18 +160,31 @@ export function SettingsModal({
             onChange={(e) => setName(e.target.value)}
           />
 
-          <Input
-            id="desiredRole"
-            label={isJobSearch ? "Desired Role / Title" : "What kind of position are you looking for?"}
-            placeholder={isJobSearch ? "e.g. Senior Frontend Developer" : "e.g. Frontend Developer, Marketing, Data Analyst"}
-            value={desiredRole}
-            onChange={(e) => setDesiredRole(e.target.value)}
-          />
-          {!isJobSearch && (
-            <p className="text-xs text-muted -mt-2">
-              Optional — helps filter out unrelated positions from career pages.
+          <div>
+            <label
+              htmlFor="profileSummary"
+              className="block text-sm font-medium text-foreground mb-1.5"
+            >
+              {isJobSearch ? "Your profile" : "Position filter"}
+            </label>
+            <textarea
+              id="profileSummary"
+              rows={3}
+              className="w-full rounded-xl border border-surface-border bg-surface-light px-4 py-3 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+              placeholder={
+                isJobSearch
+                  ? "e.g. Senior frontend developer with 5+ years React experience, prefers startups..."
+                  : "e.g. Frontend Developer, Marketing, Data Analyst"
+              }
+              value={profileSummary}
+              onChange={(e) => setProfileSummary(e.target.value)}
+            />
+            <p className="text-xs text-muted mt-1">
+              {isJobSearch
+                ? "Edit to refine what positions match"
+                : "Optional — helps filter out unrelated positions from career pages"}
             </p>
-          )}
+          </div>
 
           {isJobSearch && (
             <>

@@ -10,6 +10,7 @@ interface Agent {
   name: string;
   agentType: string;
   desiredRole: string | null;
+  profileSummary: string | null;
   isActive: boolean;
   lastRunAt: string | null;
   watchedCompanies: { id: string }[];
@@ -141,9 +142,9 @@ export function AgentCard({ agent }: { agent: Agent }) {
               )}
             </div>
 
-            {isJobSearch && agent.desiredRole && (
+            {(agent.profileSummary || agent.desiredRole) && (
               <p className="text-xs text-muted mt-1.5 truncate">
-                {agent.desiredRole}
+                {agent.profileSummary ?? agent.desiredRole}
               </p>
             )}
           </div>

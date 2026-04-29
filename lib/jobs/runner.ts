@@ -17,6 +17,8 @@ interface AgentWithCompanies {
   name: string;
   agentType: string;
   desiredRole: string | null;
+  profileSummary: string | null;
+  searchTerms: string | null;
   locationPreference: string | null;
   specificCity: string | null;
   watchedCompanies: {
@@ -71,22 +73,57 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
 
   log.push({ step: "start", detail: `Running job search "${agent.name}"` });
 
-  if (agent.desiredRole) {
-    const { searchTerms, matchKeywords } = expandKeywords(agent.desiredRole);
+  // Determine search terms: prefer pre-generated searchTerms, fall back to expandKeywords
+  let resolvedSearchTerms: string[] = [];
+  let resolvedMatchKeywords: string[] = [];
 
+  if (agent.searchTerms) {
+    try {
+      resolvedSearchTerms = JSON.parse(agent.searchTerms) as string[];
+      // Use search terms as match keywords too (lowercased)
+      resolvedMatchKeywords = resolvedSearchTerms.map((t) => t.toLowerCase());
+      log.push({
+        step: "keywords",
+        detail: `Using generated search terms: ${resolvedSearchTerms.join(", ")}`,
+        count: resolvedSearchTerms.length,
+      });
+    } catch {
+      // Invalid JSON — fall through to desiredRole expansion
+    }
+  }
+
+  if (resolvedSearchTerms.length === 0 && agent.desiredRole) {
+    const { searchTerms, matchKeywords } = expandKeywords(agent.desiredRole);
+    resolvedSearchTerms = searchTerms;
+    resolvedMatchKeywords = matchKeywords;
     log.push({
       step: "keywords",
       detail: `Expanded "${agent.desiredRole}" → searching: ${searchTerms.join(", ")}`,
       count: searchTerms.length,
     });
+  }
+
+  if (resolvedSearchTerms.length === 0 && agent.profileSummary) {
+    // Last resort: extract first meaningful phrase from profile summary
+    const firstSentence = agent.profileSummary.split(/[.,;]/)[0].trim();
+    resolvedSearchTerms = [firstSentence];
+    resolvedMatchKeywords = [firstSentence.toLowerCase()];
+    log.push({
+      step: "keywords",
+      detail: `Using profile summary excerpt: "${firstSentence}"`,
+      count: 1,
+    });
+  }
+
+  if (resolvedSearchTerms.length > 0) {
     log.push({
       step: "keywords_match",
-      detail: `Match keywords: ${matchKeywords.join(", ")}`,
-      count: matchKeywords.length,
+      detail: `Match keywords: ${resolvedMatchKeywords.join(", ")}`,
+      count: resolvedMatchKeywords.length,
     });
 
     const { listings, fetchLog } = await fetchJobListings(
-      searchTerms,
+      resolvedSearchTerms,
       agent.locationPreference,
       agent.specificCity
     );
@@ -109,7 +146,7 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
     const { matched, itemLog } = filterByPreferences(
       uniqueListings,
       agent,
-      matchKeywords
+      resolvedMatchKeywords
     );
 
     const roleRejected = itemLog.filter((i) => i.status === "rejected_role").length;
@@ -131,7 +168,7 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
       count: stored.newCount,
     });
   } else {
-    log.push({ step: "skip", detail: "No desiredRole set — skipping job search" });
+    log.push({ step: "skip", detail: "No search terms or profile set — skipping job search" });
   }
 
   const durationMs = Date.now() - startTime;
@@ -173,10 +210,11 @@ async function runCompanyWatcher(agent: AgentWithCompanies): Promise<RunResult> 
 
   log.push({ step: "start", detail: `Running company watcher "${agent.name}"` });
 
-  if (agent.desiredRole) {
+  const profileContext = agent.profileSummary ?? agent.desiredRole;
+  if (profileContext) {
     log.push({
       step: "filter",
-      detail: `Smart filtering enabled for: "${agent.desiredRole}"`,
+      detail: `Smart filtering enabled for: "${profileContext}"`,
     });
   }
 
@@ -207,7 +245,7 @@ async function runCompanyWatcher(agent: AgentWithCompanies): Promise<RunResult> 
         const listings = await scrapeCareerPage(
           company.careersUrl,
           company.companyName,
-          agent.desiredRole
+          profileContext
         );
 
         const companyItems: LogItem[] = listings.map((l) => ({

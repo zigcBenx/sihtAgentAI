@@ -31,13 +31,13 @@ const COMMON_CAREER_PATHS = [
 export async function scrapeCareerPage(
   careersUrl: string,
   companyName: string,
-  desiredRole?: string | null
+  profileContext?: string | null
 ): Promise<JobListing[]> {
   const { cleaned, baseUrl } = await fetchAndClean(careersUrl);
   if (!cleaned) return [];
 
   // Pass 1: try to extract listings directly
-  const listings = await extractListings(cleaned, baseUrl, careersUrl, companyName, desiredRole);
+  const listings = await extractListings(cleaned, baseUrl, careersUrl, companyName, profileContext);
   if (listings.length > 0) return listings;
 
   // Pass 2: no listings found — ask LLM if there's a deeper link to actual job listings
@@ -45,7 +45,7 @@ export async function scrapeCareerPage(
   if (deeperUrl && deeperUrl !== careersUrl) {
     const deeper = await fetchAndClean(deeperUrl);
     if (deeper.cleaned) {
-      const deeperListings = await extractListings(deeper.cleaned, deeper.baseUrl, deeperUrl, companyName, desiredRole);
+      const deeperListings = await extractListings(deeper.cleaned, deeper.baseUrl, deeperUrl, companyName, profileContext);
       if (deeperListings.length > 0) return deeperListings;
     }
   }
@@ -64,7 +64,7 @@ export async function scrapeCareerPage(
       if (!candidate.cleaned) continue;
 
       const candidateListings = await extractListings(
-        candidate.cleaned, candidate.baseUrl, candidateUrl, companyName, desiredRole
+        candidate.cleaned, candidate.baseUrl, candidateUrl, companyName, profileContext
       );
       if (candidateListings.length > 0) return candidateListings;
     } catch {
@@ -119,16 +119,16 @@ async function extractListings(
   baseUrl: string,
   pageUrl: string,
   companyName: string,
-  desiredRole?: string | null
+  profileContext?: string | null
 ): Promise<JobListing[]> {
   const truncated = content.slice(0, 20000);
 
-  const relevanceInstruction = desiredRole
-    ? `\n\nRELEVANCE FILTER: The user is interested in positions related to "${desiredRole}". For each job, add a "relevant" field (boolean). Be generous — mark as relevant anything that could be broadly related to this area (e.g. if the user wants "Frontend Developer", a "Full Stack Engineer" or "UI/UX Designer" would also be relevant, but "Accountant" would not). Include ALL positions in the output but mark each as relevant or not.`
+  const relevanceInstruction = profileContext
+    ? `\n\nRELEVANCE FILTER: The user's profile: "${profileContext}". For each job, add a "relevant" field (boolean). Be generous — mark as relevant anything that could be broadly related to this profile (e.g. if the user is a frontend developer, a "Full Stack Engineer" or "UI/UX Designer" would also be relevant, but "Accountant" would not). Include ALL positions in the output but mark each as relevant or not.`
     : "";
 
-  const responseFormat = desiredRole
-    ? `Return a JSON array of objects with "title" (job title), "url" (direct link to that specific job posting), and "relevant" (boolean — is this position broadly related to "${desiredRole}").`
+  const responseFormat = profileContext
+    ? `Return a JSON array of objects with "title" (job title), "url" (direct link to that specific job posting), and "relevant" (boolean — is this position broadly related to the user's profile).`
     : `Return a JSON array of objects with "title" (job title) and "url" (direct link to that specific job posting).`;
 
   const message = await client.messages.create({
@@ -151,7 +151,7 @@ Rules:
 - If there are no specific job listings on this page, return an empty array []
 - Return ONLY the JSON array, no other text${relevanceInstruction}
 
-Example: if you see "Software Engineer [/careers/jobs/123]" → {"title": "Software Engineer", "url": "${baseUrl}/careers/jobs/123"${desiredRole ? ', "relevant": true' : ""}}
+Example: if you see "Software Engineer [/careers/jobs/123]" → {"title": "Software Engineer", "url": "${baseUrl}/careers/jobs/123"${profileContext ? ', "relevant": true' : ""}}
 
 Page content:
 ${truncated}`,
@@ -177,7 +177,7 @@ ${truncated}`,
     return parsed
       .filter((item) => item.title && typeof item.title === "string")
       // When desiredRole is set, only keep positions the LLM marked as relevant
-      .filter((item) => !desiredRole || item.relevant !== false)
+      .filter((item) => !profileContext || item.relevant !== false)
       .map((item) => {
         let url = item.url || pageUrl;
         // Resolve relative URLs that the LLM may have left relative

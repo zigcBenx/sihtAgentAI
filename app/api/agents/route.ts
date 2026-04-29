@@ -47,7 +47,8 @@ export async function POST(request: Request) {
       .returning();
 
     return NextResponse.json(agent, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("POST /api/agents error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

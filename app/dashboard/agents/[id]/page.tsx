@@ -48,6 +48,7 @@ export default async function AgentDetailPage({
 
   const settingsData = {
     name: agent.name,
+    profileSummary: agent.profileSummary ?? "",
     desiredRole: agent.desiredRole ?? "",
     salaryMin: agent.salaryMin?.toString() ?? "",
     salaryMax: agent.salaryMax?.toString() ?? "",

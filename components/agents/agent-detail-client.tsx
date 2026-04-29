@@ -13,6 +13,7 @@ interface AgentDetailClientProps {
   lastRunAt: string | null;
   settingsData: {
     name: string;
+    profileSummary?: string;
     desiredRole?: string;
     salaryMin?: string;
     salaryMax?: string;
