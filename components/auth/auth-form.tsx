@@ -85,7 +85,7 @@ export function AuthForm({ initialMode = "join" }: { initialMode?: AuthMode }) {
         {/* Branding */}
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-bold text-foreground">
-            Siht<span className="text-accent">Agent</span>
+            Šiht<span className="text-accent">Agent</span>
           </h1>
           <p className="mt-2 text-sm text-muted">
             Your AI-powered job hunter

@@ -8,7 +8,7 @@ export default function Home() {
       {/* ─── Nav ─────────────────────────────────────────── */}
       <nav className="relative z-30 shrink-0 flex items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
         <span className="text-lg font-bold text-foreground">
-          Siht<span className="text-accent">Agent</span>
+          Šiht<span className="text-accent">Agent</span>
         </span>
         <div className="flex gap-2 sm:gap-3">
           <Link href="/login">
