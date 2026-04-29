@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       .values({
         ...parsed.data,
         userId: session.user.id,
+        isActive: true,
       })
       .returning();
 

@@ -44,8 +44,8 @@ export function ToggleActive({
         }`}
       >
         <span
-          className={`inline-block h-6 w-6 rounded-full bg-white transition-transform ${
-            isActive ? "translate-x-7" : "translate-x-1"
+          className={`inline-block h-6 w-6 rounded-full bg-surface shadow-sm border border-surface-border transition-transform ${
+            isActive ? "translate-x-7 border-accent/30" : "translate-x-1"
           }`}
         />
       </button>

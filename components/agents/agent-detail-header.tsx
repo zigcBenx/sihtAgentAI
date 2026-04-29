@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,20 @@ export function AgentDetailHeader({
   onOpenSettings,
 }: AgentDetailHeaderProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isNewAgent = searchParams.get("new") === "1";
   const [toggling, setToggling] = useState(false);
   const [running, setRunning] = useState(false);
+  const [showToggleGlow, setShowToggleGlow] = useState(false);
+
+  // Animate the toggle when arriving from creation
+  useEffect(() => {
+    if (isNewAgent && isActive) {
+      const timer = setTimeout(() => setShowToggleGlow(true), 300);
+      const fadeTimer = setTimeout(() => setShowToggleGlow(false), 2500);
+      return () => { clearTimeout(timer); clearTimeout(fadeTimer); };
+    }
+  }, [isNewAgent, isActive]);
   const [runResult, setRunResult] = useState<{
     newJobMatches: number;
     newCompanyAlerts: number;
@@ -129,7 +141,7 @@ export function AgentDetailHeader({
           <button
             onClick={handleDelete}
             title="Delete agent"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:text-red-400 hover:bg-red-600/10 transition-colors cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:text-danger hover:bg-danger-soft transition-colors cursor-pointer"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -139,7 +151,11 @@ export function AgentDetailHeader({
       </div>
 
       {/* Automatic scanning toggle — clear labeled section */}
-      <div className="flex items-center justify-between rounded-2xl border border-surface-border bg-surface p-4">
+      <div className={`flex items-center justify-between rounded-2xl border bg-surface p-4 transition-all duration-700 ${
+        showToggleGlow
+          ? "border-accent/60 shadow-[0_0_15px_rgba(79,70,229,0.12)]"
+          : "border-surface-border"
+      }`}>
         <div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-foreground">
@@ -163,8 +179,8 @@ export function AgentDetailHeader({
           }`}
         >
           <span
-            className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${
-              isActive ? "translate-x-6" : "translate-x-1"
+            className={`inline-block h-5 w-5 rounded-full bg-surface shadow-sm border border-surface-border transition-transform duration-500 ${
+              isActive ? "translate-x-6 border-accent/30" : "translate-x-1"
             }`}
           />
         </button>
@@ -197,14 +213,19 @@ export function AgentDetailHeader({
       </Button>
 
       {/* Run result/error feedback */}
-      {runResult && (
-        <div className="rounded-xl bg-accent/10 border border-accent/20 px-4 py-3 text-sm text-accent">
-          Found {runResult.newJobMatches} new job{runResult.newJobMatches !== 1 ? "s" : ""} and{" "}
-          {runResult.newCompanyAlerts} company alert{runResult.newCompanyAlerts !== 1 ? "s" : ""}.
-        </div>
-      )}
+      {runResult && (() => {
+        const count = isJobSearch ? runResult.newJobMatches : runResult.newCompanyAlerts;
+        const label = count === 1 ? "new position" : "new positions";
+        return (
+          <div className="rounded-xl bg-accent/10 border border-accent/20 px-4 py-3 text-sm text-accent">
+            {count > 0
+              ? `Found ${count} ${label}! Scroll down to see them.`
+              : "No new positions found this time. We'll keep checking!"}
+          </div>
+        );
+      })()}
       {runError && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-xl bg-danger-soft border border-danger-border px-4 py-3 text-sm text-danger">
           {runError}
         </div>
       )}

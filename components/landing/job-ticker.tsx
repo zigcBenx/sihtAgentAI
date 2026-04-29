@@ -43,20 +43,20 @@ const COLUMN_C: JobCard[] = [
 
 function JobCardItem({ job }: { job: JobCard }) {
   return (
-    <div className="rounded-xl border border-surface-border/60 bg-surface/80 backdrop-blur-sm p-3.5 w-full">
+    <div className="rounded-xl border border-surface-border/50 bg-surface/90 backdrop-blur-sm p-3.5 w-full shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow">
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <h4 className="text-[13px] font-semibold text-foreground/90 leading-tight">
           {job.title}
         </h4>
         {job.tag && (
-          <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent/80">
+          <span className="shrink-0 rounded-md bg-gradient-to-r from-accent/10 to-accent-light/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
             {job.tag}
           </span>
         )}
       </div>
       <div className="flex items-center justify-between text-[11px] text-muted">
         <span>{job.company} · {job.location}</span>
-        {job.salary && <span className="text-accent/50">{job.salary}</span>}
+        {job.salary && <span className="text-accent/60 font-medium">{job.salary}</span>}
       </div>
     </div>
   );

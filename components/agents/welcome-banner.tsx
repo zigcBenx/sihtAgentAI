@@ -46,9 +46,9 @@ export function WelcomeBanner({ agentType }: { agentType: string }) {
             2
           </span>
           <p>
-            <span className="text-foreground font-medium">Turn on automatic scanning</span>
+            <span className="text-foreground font-medium">Automatic scanning is on</span>
             {" — "}
-            enable the toggle above and your agent will scan on a schedule so you never miss new openings.
+            your agent will scan on a schedule so you never miss new openings. You can turn it off above.
           </p>
         </div>
 

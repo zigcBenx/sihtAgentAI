@@ -94,14 +94,16 @@ export function AgentCard({ agent }: { agent: Agent }) {
 
   // Stronger visual distinction for active vs inactive
   const borderClass = agent.isActive
-    ? "border-accent/40"
+    ? "border-accent/25"
     : "border-surface-border opacity-60";
-  const iconBgClass = agent.isActive ? "bg-accent/10" : "bg-surface-light";
+  const iconBgClass = agent.isActive
+    ? "bg-gradient-to-br from-accent/10 to-accent/5"
+    : "bg-surface-light";
 
   return (
     <Link href={`/dashboard/agents/${agent.id}`} className="block group">
       <div
-        className={`rounded-2xl border ${borderClass} bg-surface p-5 transition-all hover:opacity-100 hover:bg-surface-light`}
+        className={`rounded-2xl border ${borderClass} bg-surface p-5 transition-all hover:opacity-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 ${agent.isActive ? "border-l-[3px] border-l-accent/60" : ""}`}
       >
         <div className="flex items-start gap-4">
           {/* Robot icon */}
@@ -159,8 +161,8 @@ export function AgentCard({ agent }: { agent: Agent }) {
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-                  agent.isActive ? "translate-x-5" : "translate-x-1"
+                className={`inline-block h-4 w-4 rounded-full bg-surface shadow-sm border border-surface-border transition-transform ${
+                  agent.isActive ? "translate-x-5 border-accent/30" : "translate-x-1"
                 }`}
               />
             </button>

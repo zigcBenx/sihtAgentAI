@@ -7,13 +7,16 @@ const client = new Anthropic();
 const COMMON_CAREER_PATHS = [
   "/careers",
   "/jobs",
+  "/careers/opportunities",
+  "/careers/open-positions",
+  "/careers/positions",
+  "/careers/jobs",
   "/hiring",
   "/work-with-us",
   "/join-us",
   "/open-positions",
   "/vacancies",
   "/career",
-  "/careers/open-positions",
   "/jobs/open-positions",
   "/en/careers",
   "/en/jobs",
@@ -33,40 +36,77 @@ export async function scrapeCareerPage(
   companyName: string,
   profileContext?: string | null
 ): Promise<JobListing[]> {
+  console.log(`[careers-scraper] Starting scrape for ${companyName}: ${careersUrl}`);
   const { cleaned, baseUrl } = await fetchAndClean(careersUrl);
-  if (!cleaned) return [];
+  if (!cleaned) {
+    console.log(`[careers-scraper] Pass 1: failed to fetch or empty content for ${careersUrl}`);
+    return [];
+  }
 
   // Pass 1: try to extract listings directly
+  console.log(`[careers-scraper] Pass 1: extracted ${cleaned.length} chars from ${careersUrl}`);
   const listings = await extractListings(cleaned, baseUrl, careersUrl, companyName, profileContext);
+  console.log(`[careers-scraper] Pass 1: found ${listings.length} listings`);
   if (listings.length > 0) return listings;
 
   // Pass 2: no listings found — ask LLM if there's a deeper link to actual job listings
   const deeperUrl = await findJobListingsLink(cleaned, baseUrl, careersUrl);
+  console.log(`[careers-scraper] Pass 2: LLM suggested deeper URL: ${deeperUrl ?? "NONE"}`);
   if (deeperUrl && deeperUrl !== careersUrl) {
-    const deeper = await fetchAndClean(deeperUrl);
-    if (deeper.cleaned) {
-      const deeperListings = await extractListings(deeper.cleaned, deeper.baseUrl, deeperUrl, companyName, profileContext);
-      if (deeperListings.length > 0) return deeperListings;
+    try {
+      const deeper = await fetchAndClean(deeperUrl);
+      if (deeper.cleaned) {
+        const deeperListings = await extractListings(deeper.cleaned, deeper.baseUrl, deeperUrl, companyName, profileContext);
+        if (deeperListings.length > 0) return deeperListings;
+      }
+    } catch (err) {
+      console.log(`[careers-scraper] Pass 2 failed for ${deeperUrl}:`, err instanceof Error ? err.message : err);
     }
   }
 
   // Pass 3: brute-force try common career page paths
-  const triedUrls = new Set([careersUrl, deeperUrl].filter(Boolean));
+  const normalize = (u: string) => u.replace(/\/+$/, "");
+  const triedUrls = new Set(
+    [careersUrl, deeperUrl].filter(Boolean).map((u) => normalize(u!))
+  );
   const parsedUrl = new URL(careersUrl);
 
   for (const path of COMMON_CAREER_PATHS) {
     const candidateUrl = parsedUrl.origin + path;
-    if (triedUrls.has(candidateUrl)) continue;
-    triedUrls.add(candidateUrl);
+    if (triedUrls.has(normalize(candidateUrl))) continue;
+    triedUrls.add(normalize(candidateUrl));
 
     try {
+      console.log(`[careers-scraper] Pass 3: trying ${candidateUrl}`);
       const candidate = await fetchAndClean(candidateUrl);
-      if (!candidate.cleaned) continue;
+      if (!candidate.cleaned) {
+        console.log(`[careers-scraper] Pass 3: no content from ${candidateUrl}`);
+        continue;
+      }
 
       const candidateListings = await extractListings(
         candidate.cleaned, candidate.baseUrl, candidateUrl, companyName, profileContext
       );
       if (candidateListings.length > 0) return candidateListings;
+
+      // No listings on this career-like page — check if it links to a deeper page
+      // (e.g. /careers links to /careers/opportunities)
+      const deeperCandidate = await findJobListingsLink(candidate.cleaned, candidate.baseUrl, candidateUrl);
+      if (deeperCandidate && !triedUrls.has(normalize(deeperCandidate))) {
+        triedUrls.add(normalize(deeperCandidate));
+        console.log(`[careers-scraper] Pass 3: found deeper link ${deeperCandidate} from ${candidateUrl}`);
+        try {
+          const deep = await fetchAndClean(deeperCandidate);
+          if (deep.cleaned) {
+            const deepListings = await extractListings(
+              deep.cleaned, deep.baseUrl, deeperCandidate, companyName, profileContext
+            );
+            if (deepListings.length > 0) return deepListings;
+          }
+        } catch {
+          // deeper link failed — continue
+        }
+      }
     } catch {
       // URL doesn't exist or failed to fetch — try next
       continue;

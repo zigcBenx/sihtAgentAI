@@ -74,7 +74,7 @@ export function RunAgent({ agentId }: { agentId: string }) {
       )}
 
       {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-xl bg-danger-soft border border-danger-border px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}

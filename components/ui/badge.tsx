@@ -6,10 +6,10 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  success: "bg-accent/15 text-accent",
-  neutral: "bg-surface-light text-muted",
-  warning: "bg-yellow-500/15 text-yellow-400",
-  live: "bg-accent/15 text-accent",
+  success: "bg-accent/10 text-accent",
+  neutral: "bg-surface-light text-muted-light",
+  warning: "bg-warning-soft text-warning border border-warning-border",
+  live: "bg-accent/10 text-accent",
 };
 
 export function Badge({ variant = "neutral", children }: BadgeProps) {

@@ -127,8 +127,8 @@ export default async function DashboardPage() {
         </div>
 
         {agents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-surface-border p-12 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-light">
+          <div className="rounded-2xl border border-dashed border-surface-border bg-surface p-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/10 to-accent-light/10">
               <svg
                 className="h-7 w-7 text-muted"
                 fill="none"

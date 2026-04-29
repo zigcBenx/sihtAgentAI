@@ -85,7 +85,7 @@ export function AuthForm({ initialMode = "join" }: { initialMode?: AuthMode }) {
         {/* Branding */}
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-bold text-foreground">
-            Šiht<span className="text-accent">Agent</span>
+            Šiht<span className="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">Agent</span>
           </h1>
           <p className="mt-2 text-sm text-muted">
             Your AI-powered job hunter
@@ -93,7 +93,7 @@ export function AuthForm({ initialMode = "join" }: { initialMode?: AuthMode }) {
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl border border-surface-border bg-surface p-8">
+        <div className="rounded-3xl border border-surface-border bg-surface p-8 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.03)]">
           {/* Tab Switcher */}
           <div className="mb-8 flex rounded-xl bg-surface-light p-1">
             <button
@@ -101,7 +101,7 @@ export function AuthForm({ initialMode = "join" }: { initialMode?: AuthMode }) {
               onClick={() => switchMode("join")}
               className={`flex-1 rounded-lg py-3 text-sm font-semibold transition-all cursor-pointer ${
                 mode === "join"
-                  ? "bg-accent text-black"
+                  ? "bg-gradient-to-b from-accent to-accent-hover text-white shadow-sm"
                   : "text-muted hover:text-foreground"
               }`}
             >
@@ -112,7 +112,7 @@ export function AuthForm({ initialMode = "join" }: { initialMode?: AuthMode }) {
               onClick={() => switchMode("signin")}
               className={`flex-1 rounded-lg py-3 text-sm font-semibold transition-all cursor-pointer ${
                 mode === "signin"
-                  ? "bg-accent text-black"
+                  ? "bg-gradient-to-b from-accent to-accent-hover text-white shadow-sm"
                   : "text-muted hover:text-foreground"
               }`}
             >
@@ -121,7 +121,7 @@ export function AuthForm({ initialMode = "join" }: { initialMode?: AuthMode }) {
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+            <div className="mb-6 rounded-xl bg-danger-soft border border-danger-border px-4 py-3 text-sm text-danger">
               {error}
             </div>
           )}

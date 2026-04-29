@@ -206,9 +206,9 @@ export function CreateWizard() {
         <div className="grid gap-4 sm:grid-cols-2">
           <button
             onClick={() => selectType("job_search")}
-            className="group rounded-2xl border-2 border-surface-border bg-surface p-6 text-left transition-all hover:border-accent hover:bg-surface-light cursor-pointer"
+            className="group rounded-2xl border-2 border-surface-border bg-surface p-6 text-left transition-all hover:border-accent/50 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 cursor-pointer"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent/10 to-accent-light/10 mb-4">
               <svg className="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
@@ -222,9 +222,9 @@ export function CreateWizard() {
 
           <button
             onClick={() => selectType("company_watcher")}
-            className="group rounded-2xl border-2 border-surface-border bg-surface p-6 text-left transition-all hover:border-accent hover:bg-surface-light cursor-pointer"
+            className="group rounded-2xl border-2 border-surface-border bg-surface p-6 text-left transition-all hover:border-accent/50 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 cursor-pointer"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent/10 to-accent-light/10 mb-4">
               <svg className="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -243,6 +243,23 @@ export function CreateWizard() {
 
   // ─── Step: Work Type ─────────────────────────────────────────────
   if (step === "work_type") {
+    const selectedChips = workType
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    function toggleChip(suggestion: string) {
+      const current = workType
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (current.includes(suggestion)) {
+        setWorkType(current.filter((s) => s !== suggestion).join(", "));
+      } else {
+        setWorkType([...current, suggestion].join(", "));
+      }
+    }
+
     return (
       <Card>
         <div className="space-y-6">
@@ -253,7 +270,7 @@ export function CreateWizard() {
               What kind of work are you looking for?
             </h2>
             <p className="text-sm text-muted">
-              Type your own or pick from the suggestions below.
+              Pick one or more categories, or type your own.
             </p>
           </div>
 
@@ -270,11 +287,11 @@ export function CreateWizard() {
               <button
                 key={suggestion}
                 type="button"
-                onClick={() => setWorkType(suggestion)}
+                onClick={() => toggleChip(suggestion)}
                 className={`rounded-full px-4 py-2 text-sm transition-all cursor-pointer ${
-                  workType === suggestion
-                    ? "bg-accent text-black font-medium"
-                    : "bg-surface-light text-muted-light border border-surface-border hover:border-accent/50 hover:text-foreground"
+                  selectedChips.includes(suggestion)
+                    ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                    : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
                 }`}
               >
                 {suggestion}
@@ -359,7 +376,7 @@ export function CreateWizard() {
             onChange={(e) => setAdditionalContext(e.target.value)}
             placeholder="e.g. I know Python and React, I prefer startups, I want remote work, I'm switching from accounting to UX..."
             rows={4}
-            className="block w-full rounded-xl border border-surface-border bg-surface-light px-4 py-3.5 text-base text-foreground placeholder-muted focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30 resize-none"
+            className="block w-full rounded-xl border border-surface-border bg-surface px-4 py-3.5 text-base text-foreground placeholder-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
           />
 
           <div className="flex gap-3">
@@ -417,7 +434,7 @@ export function CreateWizard() {
         </div>
 
         {error && (
-          <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+          <div className="rounded-xl bg-danger-soft border border-danger-border px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
@@ -432,7 +449,7 @@ export function CreateWizard() {
         />
 
         {/* Summary of what was selected */}
-        <div className="rounded-xl bg-surface-light border border-surface-border p-4 space-y-1">
+        <div className="rounded-xl bg-surface-light border-l-[3px] border-l-accent/40 border border-surface-border p-4 space-y-1">
           <div className="text-xs text-muted uppercase tracking-wider font-medium">
             Your profile
           </div>

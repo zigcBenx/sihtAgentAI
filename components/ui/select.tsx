@@ -26,7 +26,7 @@ export function Select({
       )}
       <select
         id={id}
-        className={`block w-full rounded-xl border border-surface-border bg-surface-light px-4 py-3.5 text-base text-foreground focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30 appearance-none cursor-pointer ${error ? "border-red-500/50" : ""} ${className}`}
+        className={`block w-full rounded-xl border border-surface-border bg-surface px-4 py-3.5 text-base text-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 appearance-none cursor-pointer ${error ? "border-danger" : ""} ${className}`}
         {...props}
       >
         {options.map((opt) => (
@@ -35,7 +35,7 @@ export function Select({
           </option>
         ))}
       </select>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

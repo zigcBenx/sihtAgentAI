@@ -10,10 +10,10 @@ interface HeaderProps {
 
 export function Header({ userName }: HeaderProps) {
   return (
-    <header className="border-b border-surface-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+    <header className="border-b border-surface-border/60 bg-surface/70 backdrop-blur-md sticky top-0 z-50">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
         <Link href="/dashboard" className="text-lg font-bold text-foreground">
-          Šiht<span className="text-accent">Agent</span> AI
+          Šiht<span className="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">Agent</span> AI
         </Link>
         <div className="flex items-center gap-4">
           {userName && (

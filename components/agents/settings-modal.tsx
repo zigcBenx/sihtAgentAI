@@ -124,12 +124,12 @@ export function SettingsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-2xl border border-surface-border bg-surface p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-2xl border border-surface-border bg-surface p-6 shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)] max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-foreground">
             {isJobSearch ? "Search Settings" : "Agent Settings"}
@@ -145,7 +145,7 @@ export function SettingsModal({
         </div>
 
         {error && (
-          <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+          <div className="mb-4 rounded-xl bg-danger-soft border border-danger-border px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
@@ -163,14 +163,14 @@ export function SettingsModal({
           <div>
             <label
               htmlFor="profileSummary"
-              className="block text-sm font-medium text-foreground mb-1.5"
+              className="block text-sm font-medium text-muted-light mb-1.5"
             >
               {isJobSearch ? "Your profile" : "Position filter"}
             </label>
             <textarea
               id="profileSummary"
               rows={3}
-              className="w-full rounded-xl border border-surface-border bg-surface-light px-4 py-3 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+              className="w-full rounded-xl border border-surface-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
               placeholder={
                 isJobSearch
                   ? "e.g. Senior frontend developer with 5+ years React experience, prefers startups..."

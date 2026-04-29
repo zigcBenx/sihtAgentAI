@@ -65,7 +65,7 @@ function StepIcon({ step }: { step: string }) {
   const isDone = step === "done";
 
   let color = "text-muted";
-  if (isError) color = "text-red-400";
+  if (isError) color = "text-danger";
   else if (isDone) color = "text-accent";
 
   return <span className={`${color} text-xs w-5 shrink-0 text-center`}>{icon}</span>;
@@ -73,9 +73,9 @@ function StepIcon({ step }: { step: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    success: "bg-accent/15 text-accent",
-    partial: "bg-yellow-500/15 text-yellow-400",
-    error: "bg-red-500/15 text-red-400",
+    success: "bg-accent/10 text-accent",
+    partial: "bg-warning-soft text-warning",
+    error: "bg-danger-soft text-danger",
   };
 
   return (
@@ -89,8 +89,8 @@ function ItemStatusDot({ status }: { status: LogItem["status"] }) {
   const colors: Record<string, string> = {
     matched: "bg-accent",
     stored: "bg-accent",
-    rejected_role: "bg-red-400",
-    rejected_location: "bg-yellow-400",
+    rejected_role: "bg-danger",
+    rejected_location: "bg-warning",
     duplicate: "bg-muted",
   };
   return <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1.5 ${colors[status] ?? "bg-muted"}`} />;
@@ -132,15 +132,20 @@ function ItemList({ items }: { items: LogItem[] }) {
               <div key={`r-${i}`} className="flex items-start gap-2 py-0.5">
                 <ItemStatusDot status={item.status} />
                 <div className="min-w-0">
-                  <span className="text-[11px] text-muted-light line-through decoration-red-400/30">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-muted-light line-through decoration-danger/30 hover:text-foreground truncate block"
+                  >
                     {item.title}
-                  </span>
+                  </a>
                   <span className="text-[10px] text-muted block">
                     {item.company}
                     {item.location && ` · ${item.location}`}
                   </span>
                   {item.reason && (
-                    <span className="text-[10px] text-red-400/70 block">
+                    <span className="text-[10px] text-danger/70 block">
                       {item.reason}
                     </span>
                   )}
