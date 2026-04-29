@@ -47,8 +47,11 @@ export interface LogItem {
 export interface RunResult {
   agentId: string;
   agentName: string;
+  agentType: string;
   newJobMatches: number;
   newCompanyAlerts: number;
+  newJobItems: { title: string; company: string; location: string | null; url: string }[];
+  newAlertItems: { title: string; url: string; companyName: string }[];
   log: LogEntry[];
 }
 
@@ -69,6 +72,7 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
   const startTime = Date.now();
   const log: LogEntry[] = [];
   let newJobMatches = 0;
+  let newJobItems: JobListing[] = [];
   let hasError = false;
 
   log.push({ step: "start", detail: `Running job search "${agent.name}"` });
@@ -161,6 +165,7 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
 
     const stored = await deduplicateAndStore(matched, agent.id);
     newJobMatches = stored.newCount;
+    newJobItems = stored.newItems;
 
     log.push({
       step: "dedup",
@@ -193,8 +198,16 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
   return {
     agentId: agent.id,
     agentName: agent.name,
+    agentType: agent.agentType,
     newJobMatches,
     newCompanyAlerts: 0,
+    newJobItems: newJobItems.map((l) => ({
+      title: l.title,
+      company: l.company,
+      location: l.location,
+      url: l.url,
+    })),
+    newAlertItems: [],
     log,
   };
 }
@@ -206,6 +219,7 @@ async function runCompanyWatcher(agent: AgentWithCompanies): Promise<RunResult> 
   const startTime = Date.now();
   const log: LogEntry[] = [];
   let newCompanyAlerts = 0;
+  const newAlertItems: { title: string; url: string; companyName: string }[] = [];
   let hasError = false;
 
   log.push({ step: "start", detail: `Running company watcher "${agent.name}"` });
@@ -269,6 +283,13 @@ async function runCompanyWatcher(agent: AgentWithCompanies): Promise<RunResult> 
           company.id
         );
         newCompanyAlerts += stored.newCount;
+        newAlertItems.push(
+          ...stored.newItems.map((l) => ({
+            title: l.title,
+            url: l.url,
+            companyName: company.companyName,
+          }))
+        );
 
         log.push({
           step: "company_stored",
@@ -307,8 +328,11 @@ async function runCompanyWatcher(agent: AgentWithCompanies): Promise<RunResult> 
   return {
     agentId: agent.id,
     agentName: agent.name,
+    agentType: agent.agentType,
     newJobMatches: 0,
     newCompanyAlerts,
+    newJobItems: [],
+    newAlertItems,
     log,
   };
 }
@@ -423,8 +447,8 @@ function filterByPreferences(
 async function deduplicateAndStore(
   listings: JobListing[],
   agentId: string
-): Promise<{ newCount: number; dupCount: number }> {
-  if (listings.length === 0) return { newCount: 0, dupCount: 0 };
+): Promise<{ newCount: number; dupCount: number; newItems: JobListing[] }> {
+  if (listings.length === 0) return { newCount: 0, dupCount: 0, newItems: [] };
 
   const existing = await db.query.jobMatches.findMany({
     where: eq(jobMatches.agentId, agentId),
@@ -437,7 +461,7 @@ async function deduplicateAndStore(
   );
   const dupCount = listings.length - newListings.length;
 
-  if (newListings.length === 0) return { newCount: 0, dupCount };
+  if (newListings.length === 0) return { newCount: 0, dupCount, newItems: [] };
 
   await db.insert(jobMatches).values(
     newListings.map((l) => ({
@@ -451,7 +475,7 @@ async function deduplicateAndStore(
     }))
   );
 
-  return { newCount: newListings.length, dupCount };
+  return { newCount: newListings.length, dupCount, newItems: newListings };
 }
 
 /**
@@ -461,8 +485,8 @@ async function deduplicateAndStoreCompanyAlerts(
   listings: JobListing[],
   agentId: string,
   watchedCompanyId: string
-): Promise<{ newCount: number; dupCount: number }> {
-  if (listings.length === 0) return { newCount: 0, dupCount: 0 };
+): Promise<{ newCount: number; dupCount: number; newItems: JobListing[] }> {
+  if (listings.length === 0) return { newCount: 0, dupCount: 0, newItems: [] };
 
   const existing = await db.query.companyAlerts.findMany({
     where: and(
@@ -478,7 +502,7 @@ async function deduplicateAndStoreCompanyAlerts(
   );
   const dupCount = listings.length - newListings.length;
 
-  if (newListings.length === 0) return { newCount: 0, dupCount };
+  if (newListings.length === 0) return { newCount: 0, dupCount, newItems: [] };
 
   await db.insert(companyAlerts).values(
     newListings.map((l) => ({
@@ -491,5 +515,5 @@ async function deduplicateAndStoreCompanyAlerts(
     }))
   );
 
-  return { newCount: newListings.length, dupCount };
+  return { newCount: newListings.length, dupCount, newItems: newListings };
 }

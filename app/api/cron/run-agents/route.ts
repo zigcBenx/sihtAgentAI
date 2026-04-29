@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { sihtAgents } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { runAgent } from "@/lib/jobs/runner";
+import { sendAgentResultsEmail } from "@/lib/email";
 
 export const maxDuration = 60;
 
@@ -17,7 +18,10 @@ export async function GET() {
 
   const activeAgents = await db.query.sihtAgents.findMany({
     where: eq(sihtAgents.isActive, true),
-    with: { watchedCompanies: true },
+    with: {
+      watchedCompanies: true,
+      user: { columns: { email: true } },
+    },
   });
 
   const results = [];
@@ -26,6 +30,22 @@ export async function GET() {
     try {
       const result = await runAgent(agent);
       results.push(result);
+
+      // Send email notification if new results were found
+      if (result.newJobMatches > 0 || result.newCompanyAlerts > 0) {
+        try {
+          await sendAgentResultsEmail({
+            to: agent.user.email,
+            agentName: result.agentName,
+            agentType: result.agentType,
+            agentId: result.agentId,
+            newJobs: result.newJobItems,
+            newAlerts: result.newAlertItems,
+          });
+        } catch (emailErr) {
+          console.error(`[email] Failed for agent ${agent.id}:`, emailErr);
+        }
+      }
     } catch (err) {
       console.error(`Agent ${agent.id} (${agent.name}) failed:`, err);
       results.push({
