@@ -3,13 +3,30 @@ import type { JobListing } from "./types";
 
 const client = new Anthropic();
 
+/** Common career/jobs page paths to try when the given URL has no listings */
+const COMMON_CAREER_PATHS = [
+  "/careers",
+  "/jobs",
+  "/hiring",
+  "/work-with-us",
+  "/join-us",
+  "/open-positions",
+  "/vacancies",
+  "/career",
+  "/careers/open-positions",
+  "/jobs/open-positions",
+  "/en/careers",
+  "/en/jobs",
+];
+
 /**
  * Scrape a company's careers page using LLM extraction.
- * Two-pass approach:
+ * Three-pass approach:
  *   1. Try to extract job listings from the given URL.
  *   2. If no listings found, ask the LLM if there's a link to an actual
  *      job listings page (e.g. /careers/opportunities, /jobs/open-positions).
  *      If found, fetch that page and extract listings from it.
+ *   3. If still nothing, brute-force try common career page URL paths.
  */
 export async function scrapeCareerPage(
   careersUrl: string,
@@ -25,13 +42,38 @@ export async function scrapeCareerPage(
 
   // Pass 2: no listings found — ask LLM if there's a deeper link to actual job listings
   const deeperUrl = await findJobListingsLink(cleaned, baseUrl, careersUrl);
-  if (!deeperUrl || deeperUrl === careersUrl) return [];
+  if (deeperUrl && deeperUrl !== careersUrl) {
+    const deeper = await fetchAndClean(deeperUrl);
+    if (deeper.cleaned) {
+      const deeperListings = await extractListings(deeper.cleaned, deeper.baseUrl, deeperUrl, companyName, desiredRole);
+      if (deeperListings.length > 0) return deeperListings;
+    }
+  }
 
-  // Fetch the deeper page and extract from it
-  const deeper = await fetchAndClean(deeperUrl);
-  if (!deeper.cleaned) return [];
+  // Pass 3: brute-force try common career page paths
+  const triedUrls = new Set([careersUrl, deeperUrl].filter(Boolean));
+  const parsedUrl = new URL(careersUrl);
 
-  return extractListings(deeper.cleaned, deeper.baseUrl, deeperUrl, companyName, desiredRole);
+  for (const path of COMMON_CAREER_PATHS) {
+    const candidateUrl = parsedUrl.origin + path;
+    if (triedUrls.has(candidateUrl)) continue;
+    triedUrls.add(candidateUrl);
+
+    try {
+      const candidate = await fetchAndClean(candidateUrl);
+      if (!candidate.cleaned) continue;
+
+      const candidateListings = await extractListings(
+        candidate.cleaned, candidate.baseUrl, candidateUrl, companyName, desiredRole
+      );
+      if (candidateListings.length > 0) return candidateListings;
+    } catch {
+      // URL doesn't exist or failed to fetch — try next
+      continue;
+    }
+  }
+
+  return [];
 }
 
 /**
@@ -53,7 +95,7 @@ async function fetchAndClean(
     });
 
     if (!res.ok) {
-      throw new Error(`Failed to fetch ${url}: ${res.status}`);
+      return { cleaned: null, baseUrl };
     }
 
     const html = await res.text();
