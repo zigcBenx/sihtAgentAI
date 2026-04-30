@@ -71,7 +71,7 @@ export default async function AgentDetailPage({
         {/* Type-specific content rendered as children */}
         {isJobSearch ? (
           <>
-            <JobMatches matches={matches} />
+            <JobMatches matches={matches} agentId={agent.id} />
             <RunLogs logs={logs} />
           </>
         ) : (

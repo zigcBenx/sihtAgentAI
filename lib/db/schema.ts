@@ -127,6 +127,8 @@ export const jobMatches = sqliteTable("job_matches", {
   externalId: text("external_id"), // dedup key from source
   relevance: text("relevance").notNull().default("other"), // "perfect" | "good" | "partial" | "other"
   seen: integer("seen", { mode: "boolean" }).notNull().default(false),
+  favorited: integer("favorited", { mode: "boolean" }).notNull().default(false),
+  discarded: integer("discarded", { mode: "boolean" }).notNull().default(false),
   foundAt: integer("found_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

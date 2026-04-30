@@ -30,6 +30,8 @@ export default async function DashboardPage() {
     url: string;
     source: string;
     seen: boolean;
+    favorited: boolean;
+    discarded: boolean;
     foundAt: Date;
     agentId: string;
   }[] = [];
@@ -57,6 +59,8 @@ export default async function DashboardPage() {
         url: true,
         source: true,
         seen: true,
+        favorited: true,
+        discarded: true,
         foundAt: true,
         agentId: true,
       },
@@ -88,16 +92,20 @@ export default async function DashboardPage() {
 
   // Merge into unified feed sorted by date
   const feed = [
-    ...recentJobs.map((j) => ({
-      id: j.id,
-      type: "job" as const,
-      title: j.title,
-      subtitle: j.company,
-      url: j.url,
-      seen: j.seen,
-      foundAt: j.foundAt.toISOString(),
-      agentName: agentNames[j.agentId] ?? "Agent",
-    })),
+    ...recentJobs
+      .filter((j) => !j.discarded)
+      .map((j) => ({
+        id: j.id,
+        type: "job" as const,
+        title: j.title,
+        subtitle: j.company,
+        url: j.url,
+        seen: j.seen,
+        favorited: j.favorited,
+        foundAt: j.foundAt.toISOString(),
+        agentId: j.agentId,
+        agentName: agentNames[j.agentId] ?? "Agent",
+      })),
     ...recentAlerts.map((a) => ({
       id: a.id,
       type: "alert" as const,
@@ -105,14 +113,17 @@ export default async function DashboardPage() {
       subtitle: a.watchedCompany?.companyName ?? "Company",
       url: a.url,
       seen: a.seen,
+      favorited: false,
       foundAt: a.foundAt.toISOString(),
+      agentId: a.agentId,
       agentName: agentNames[a.agentId] ?? "Agent",
     })),
   ]
-    .sort(
-      (a, b) =>
-        new Date(b.foundAt).getTime() - new Date(a.foundAt).getTime()
-    )
+    .sort((a, b) => {
+      // Favorited items first
+      if (a.favorited !== b.favorited) return a.favorited ? -1 : 1;
+      return new Date(b.foundAt).getTime() - new Date(a.foundAt).getTime();
+    })
     .slice(0, 20);
 
   return (
