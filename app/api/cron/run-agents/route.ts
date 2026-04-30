@@ -24,15 +24,20 @@ export async function GET() {
     },
   });
 
+  console.log(`[cron] Found ${activeAgents.length} active agents`);
+
   const results = [];
 
   for (const agent of activeAgents) {
+    console.log(`[cron] Running agent ${agent.id} (${agent.name}, type=${agent.agentType})`);
     try {
       const result = await runAgent(agent);
+      console.log(`[cron] Agent ${agent.id} done: ${result.newJobMatches} new jobs, ${result.newCompanyAlerts} new alerts`);
       results.push(result);
 
       // Send email notification if new results were found
       if (result.newJobMatches > 0 || result.newCompanyAlerts > 0) {
+        console.log(`[cron] Sending email to ${agent.user.email} for agent ${agent.id} (${result.newJobItems.length} jobs, ${result.newAlertItems.length} alerts)`);
         try {
           await sendAgentResultsEmail({
             to: agent.user.email,
@@ -42,12 +47,15 @@ export async function GET() {
             newJobs: result.newJobItems,
             newAlerts: result.newAlertItems,
           });
+          console.log(`[cron] Email sent successfully for agent ${agent.id}`);
         } catch (emailErr) {
-          console.error(`[email] Failed for agent ${agent.id}:`, emailErr);
+          console.error(`[cron] Email FAILED for agent ${agent.id}:`, emailErr);
         }
+      } else {
+        console.log(`[cron] No new results for agent ${agent.id}, skipping email`);
       }
     } catch (err) {
-      console.error(`Agent ${agent.id} (${agent.name}) failed:`, err);
+      console.error(`[cron] Agent ${agent.id} (${agent.name}) FAILED:`, err);
       results.push({
         agentId: agent.id,
         agentName: agent.name,

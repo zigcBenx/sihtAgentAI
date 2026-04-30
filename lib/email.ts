@@ -38,16 +38,28 @@ export async function sendAgentResultsEmail(params: {
   }
 
   const totalNew = params.newJobs.length + params.newAlerts.length;
-  if (totalNew === 0) return;
+  if (totalNew === 0) {
+    console.log("[email] No items to send, skipping");
+    return;
+  }
+
+  console.log(`[email] Sending to ${params.to}: ${totalNew} results for "${params.agentName}"`);
 
   const html = buildEmailHtml(params);
 
-  await client.emails.send({
+  const { data, error } = await client.emails.send({
     from: "ŠihtAgent <notifications@benxlabs.com>",
     to: params.to,
     subject: `${params.agentName}: ${totalNew} new ${totalNew === 1 ? "result" : "results"} found`,
     html,
   });
+
+  if (error) {
+    console.error("[email] Resend API error:", error);
+    throw new Error(`Resend error: ${error.message}`);
+  }
+
+  console.log(`[email] Sent successfully, id=${data?.id}`);
 }
 
 function buildEmailHtml(params: {
