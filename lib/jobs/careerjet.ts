@@ -35,6 +35,12 @@ export async function searchCareerjet(
     return [];
   }
 
+  // Careerjet requires IP whitelisting — Vercel has no stable egress IP
+  if (process.env.VERCEL) {
+    console.log("[careerjet] Skipping on Vercel (no stable IP for whitelist)");
+    return [];
+  }
+
   const url = new URL(API_URL);
   url.searchParams.set("locale_code", "sl_SI");
   url.searchParams.set("keywords", keyword);
