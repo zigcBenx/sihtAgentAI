@@ -8,9 +8,19 @@ interface JobMatch {
   location: string | null;
   url: string;
   source: string;
+  relevance: string;
   seen: boolean;
   foundAt: Date;
 }
+
+const RELEVANCE_CONFIG = {
+  perfect: { label: "Perfect Fit", color: "text-emerald-600", dotColor: "bg-emerald-500" },
+  good: { label: "Good Fit", color: "text-accent", dotColor: "bg-accent" },
+  partial: { label: "Worth a Look", color: "text-amber-600", dotColor: "bg-amber-500" },
+  other: { label: "Other", color: "text-muted", dotColor: "bg-muted" },
+} as const;
+
+const TIER_ORDER = ["perfect", "good", "partial", "other"] as const;
 
 function timeAgo(date: Date): string {
   const diff = Date.now() - date.getTime();
@@ -41,6 +51,13 @@ export function JobMatches({ matches }: { matches: JobMatch[] }) {
 
   const unseenCount = matches.filter((m) => !m.seen).length;
 
+  // Group by relevance tier
+  const grouped = new Map<string, JobMatch[]>();
+  for (const tier of TIER_ORDER) {
+    const items = matches.filter((m) => m.relevance === tier);
+    if (items.length > 0) grouped.set(tier, items);
+  }
+
   return (
     <Card>
       <div className="flex items-center justify-between mb-6">
@@ -58,40 +75,56 @@ export function JobMatches({ matches }: { matches: JobMatch[] }) {
         )}
       </div>
 
-      <div className="space-y-2">
-        {matches.map((match) => (
-          <a
-            key={match.id}
-            href={match.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-start justify-between gap-3 rounded-xl bg-surface-light px-4 py-3 hover:bg-surface-border/50 transition-colors group"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                {!match.seen && (
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
-                )}
-                <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors truncate">
-                  {match.title}
+      <div className="space-y-6">
+        {[...grouped.entries()].map(([tier, items]) => {
+          const config = RELEVANCE_CONFIG[tier as keyof typeof RELEVANCE_CONFIG];
+          return (
+            <div key={tier}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`h-2 w-2 rounded-full ${config.dotColor}`} />
+                <span className={`text-xs font-semibold uppercase tracking-wider ${config.color}`}>
+                  {config.label}
                 </span>
+                <span className="text-xs text-muted">({items.length})</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <span>{match.company}</span>
-                {match.location && (
-                  <>
-                    <span className="text-surface-border">·</span>
-                    <span>{match.location}</span>
-                  </>
-                )}
+              <div className="space-y-2">
+                {items.map((match) => (
+                  <a
+                    key={match.id}
+                    href={match.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start justify-between gap-3 rounded-xl bg-surface-light px-4 py-3 hover:bg-surface-border/50 transition-colors group"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        {!match.seen && (
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
+                        )}
+                        <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors truncate">
+                          {match.title}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted">
+                        <span>{match.company}</span>
+                        {match.location && (
+                          <>
+                            <span className="text-surface-border">·</span>
+                            <span>{match.location}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex flex-col items-end gap-1">
+                      <span className="text-[10px] text-muted">{timeAgo(match.foundAt)}</span>
+                      <span className="text-[10px] text-muted/50">{match.source}</span>
+                    </div>
+                  </a>
+                ))}
               </div>
             </div>
-            <div className="shrink-0 flex flex-col items-end gap-1">
-              <span className="text-[10px] text-muted">{timeAgo(match.foundAt)}</span>
-              <span className="text-[10px] text-muted/50">{match.source}</span>
-            </div>
-          </a>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );

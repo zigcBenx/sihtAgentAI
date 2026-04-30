@@ -52,8 +52,9 @@ export default async function AgentDetailPage({
     desiredRole: agent.desiredRole ?? "",
     salaryMin: agent.salaryMin?.toString() ?? "",
     salaryMax: agent.salaryMax?.toString() ?? "",
-    locationPreference: agent.locationPreference ?? "",
-    specificCity: agent.specificCity ?? "",
+    workMode: agent.workMode ?? "",
+    geoScope: agent.geoScope ?? "",
+    geoValue: agent.geoValue ?? "",
     frequency: agent.frequency,
   };
 

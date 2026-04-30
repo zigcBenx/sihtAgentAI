@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { SLOVENIAN_REGIONS } from "@/lib/validations/agent";
 
 type AgentType = "job_search" | "company_watcher";
 type Step =
@@ -45,12 +46,31 @@ const frequencyOptions = [
   { value: "weekly", label: "Once a week" },
 ];
 
-const locationOptions = [
-  { value: "", label: "Not specified" },
+const WORK_MODE_CHIPS = [
   { value: "remote", label: "Remote" },
-  { value: "slovenia", label: "Anywhere in Slovenia" },
-  { value: "specific_city", label: "Specific city in Slovenia" },
-];
+  { value: "hybrid", label: "Hybrid" },
+  { value: "onsite", label: "On-site" },
+] as const;
+
+const GEO_SCOPE_OPTIONS = [
+  { value: "", label: "Anywhere" },
+  { value: "slovenia", label: "Slovenia" },
+  { value: "region", label: "Region" },
+  { value: "city", label: "Specific city" },
+] as const;
+
+/** Toggle a value in a comma-separated string */
+function toggleCsv(csv: string, val: string): string {
+  const items = csv.split(",").map((s) => s.trim()).filter(Boolean);
+  if (items.includes(val)) {
+    return items.filter((s) => s !== val).join(",");
+  }
+  return [...items, val].join(",");
+}
+
+function csvHas(csv: string, val: string): boolean {
+  return csv.split(",").map((s) => s.trim()).includes(val);
+}
 
 export function CreateWizard() {
   const router = useRouter();
@@ -67,13 +87,19 @@ export function CreateWizard() {
   // Job search fields
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
-  const [locationPreference, setLocationPreference] = useState("");
-  const [specificCity, setSpecificCity] = useState("");
+  const [workMode, setWorkMode] = useState("");
+  const [geoScope, setGeoScope] = useState("");
+  const [geoValue, setGeoValue] = useState("");
   const [frequency, setFrequency] = useState("daily");
 
   // Company watcher fields
   const [firstCompanyName, setFirstCompanyName] = useState("");
   const [firstCareersUrl, setFirstCareersUrl] = useState("");
+
+  // CV upload
+  const [cvUploading, setCvUploading] = useState(false);
+  const [cvFileName, setCvFileName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Agent name (auto-generated, editable)
   const [name, setName] = useState("");
@@ -100,6 +126,34 @@ export function CreateWizard() {
       setName(`${workType.trim()} ${suffix}`);
     }
     setStep("configure");
+  }
+
+  async function handleCvUpload(file: File) {
+    setCvUploading(true);
+    setCvFileName(file.name);
+    try {
+      const formData = new FormData();
+      formData.append("cv", file);
+      const res = await fetch("/api/agents/parse-cv", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "Failed to parse CV");
+        setCvFileName("");
+        return;
+      }
+      const data = await res.json();
+      setAdditionalContext((prev) =>
+        prev ? `${prev}\n\n${data.extracted}` : data.extracted
+      );
+    } catch {
+      setError("Failed to upload CV");
+      setCvFileName("");
+    } finally {
+      setCvUploading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -145,8 +199,9 @@ export function CreateWizard() {
       if (agentType === "job_search") {
         if (salaryMin) payload.salaryMin = Number(salaryMin);
         if (salaryMax) payload.salaryMax = Number(salaryMax);
-        if (locationPreference) payload.locationPreference = locationPreference;
-        if (specificCity) payload.specificCity = specificCity;
+        if (workMode) payload.workMode = workMode;
+        if (geoScope) payload.geoScope = geoScope;
+        if (geoValue) payload.geoValue = geoValue;
       }
 
       const res = await fetch("/api/agents", {
@@ -365,10 +420,65 @@ export function CreateWizard() {
               Anything else we should know?
             </h2>
             <p className="text-sm text-muted">
-              Optional — tell us about specific skills, industries, or
-              preferences you have. This helps us find better matches.
+              Optional — upload your CV to auto-extract skills and experience,
+              or type it manually below.
             </p>
           </div>
+
+          {/* CV Upload */}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleCvUpload(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={cvUploading}
+              className="w-full rounded-xl border-2 border-dashed border-surface-border bg-surface-light p-5 text-center transition-all hover:border-accent/50 hover:bg-accent/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {cvUploading ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-surface-border border-t-accent" />
+                  <span className="text-sm text-muted">
+                    Extracting details from {cvFileName}...
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex justify-center">
+                    <svg className="h-8 w-8 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">
+                    Upload your CV
+                  </p>
+                  <p className="text-xs text-muted">
+                    PDF, DOC, DOCX, or TXT — max 5MB
+                  </p>
+                  {cvFileName && (
+                    <p className="text-xs text-accent mt-1">
+                      Extracted from {cvFileName}
+                    </p>
+                  )}
+                </div>
+              )}
+            </button>
+          </div>
+
+          {error && (
+            <div className="rounded-xl bg-danger-soft border border-danger-border px-4 py-3 text-sm text-danger">
+              {error}
+            </div>
+          )}
 
           <textarea
             id="additionalContext"
@@ -482,21 +592,99 @@ export function CreateWizard() {
               />
             </div>
 
-            <Select
-              id="locationPreference"
-              label="Preferred Location"
-              options={locationOptions}
-              value={locationPreference}
-              onChange={(e) => setLocationPreference(e.target.value)}
-            />
+            {/* Work mode — multi-select */}
+            <div>
+              <label className="block text-sm font-medium text-muted-light mb-2">
+                Work mode
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setWorkMode("")}
+                  className={`rounded-full px-4 py-2 text-sm transition-all cursor-pointer ${
+                    !workMode
+                      ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                      : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                  }`}
+                >
+                  Doesn&apos;t matter
+                </button>
+                {WORK_MODE_CHIPS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setWorkMode(toggleCsv(workMode, opt.value))}
+                    className={`rounded-full px-4 py-2 text-sm transition-all cursor-pointer ${
+                      csvHas(workMode, opt.value)
+                        ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                        : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {locationPreference === "specific_city" && (
+            {/* Geographic area */}
+            <div>
+              <label className="block text-sm font-medium text-muted-light mb-2">
+                Where?
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {GEO_SCOPE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setGeoScope(opt.value);
+                      if (opt.value !== "region" && opt.value !== "city") {
+                        setGeoValue("");
+                      }
+                    }}
+                    className={`rounded-full px-4 py-2 text-sm transition-all cursor-pointer ${
+                      geoScope === opt.value
+                        ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                        : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {geoScope === "region" && (
+              <div>
+                <label className="block text-sm font-medium text-muted-light mb-2">
+                  Select regions
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {SLOVENIAN_REGIONS.map((region) => (
+                    <button
+                      key={region}
+                      type="button"
+                      onClick={() => setGeoValue(toggleCsv(geoValue, region))}
+                      className={`rounded-full px-3.5 py-1.5 text-sm transition-all cursor-pointer ${
+                        csvHas(geoValue, region)
+                          ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                          : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                      }`}
+                    >
+                      {region}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {geoScope === "city" && (
               <Input
-                id="specificCity"
-                label="City"
-                placeholder="e.g. Ljubljana"
-                value={specificCity}
-                onChange={(e) => setSpecificCity(e.target.value)}
+                id="geoValue"
+                label="Cities"
+                placeholder="e.g. Ljubljana, Maribor, Celje"
+                value={geoValue}
+                onChange={(e) => setGeoValue(e.target.value)}
               />
             )}
           </>

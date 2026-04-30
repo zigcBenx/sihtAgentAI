@@ -81,8 +81,11 @@ export const sihtAgents = sqliteTable("siht_agents", {
   searchTerms: text("search_terms"), // JSON string: string[]
   salaryMin: integer("salary_min"),
   salaryMax: integer("salary_max"),
-  locationPreference: text("location_preference"),
-  specificCity: text("specific_city"),
+  locationPreference: text("location_preference"), // deprecated
+  specificCity: text("specific_city"), // deprecated
+  workMode: text("work_mode"), // "remote" | "hybrid" | "onsite" | null
+  geoScope: text("geo_scope"), // "anywhere" | "slovenia" | "region" | "city" | null
+  geoValue: text("geo_value"), // region name or city name
   frequency: text("frequency").notNull().default("daily"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(false),
   lastRunAt: integer("last_run_at", { mode: "timestamp" }),
@@ -122,6 +125,7 @@ export const jobMatches = sqliteTable("job_matches", {
   url: text("url").notNull(),
   source: text("source").notNull(), // "mojedelo" | "optius" | "ess" | "inzaposlitev" | "careerjet"
   externalId: text("external_id"), // dedup key from source
+  relevance: text("relevance").notNull().default("other"), // "perfect" | "good" | "partial" | "other"
   seen: integer("seen", { mode: "boolean" }).notNull().default(false),
   foundAt: integer("found_at", { mode: "timestamp" })
     .notNull()

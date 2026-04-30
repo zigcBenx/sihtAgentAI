@@ -6,4 +6,11 @@ export interface JobListing {
   url: string;
   source: "mojedelo" | "optius" | "careers" | "ess" | "inzaposlitev" | "careerjet";
   externalId: string;
+  relevance?: Relevance;
+  /** True if this listing was returned by a keyword-searched API (MojeDelo, ESS, Careerjet).
+   *  These APIs search job descriptions, so even if the title doesn't match,
+   *  the listing is likely relevant. */
+  searchMatched?: boolean;
 }
+
+export type Relevance = "perfect" | "good" | "partial" | "other";

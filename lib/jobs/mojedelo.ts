@@ -9,7 +9,7 @@ const HEADERS = {
 };
 
 interface MojeDeloItem {
-  id: string;
+  id: string; // UUID — used in the canonical URL
   jbqId: string;
   title: string;
   town?: { name?: string };
@@ -17,8 +17,22 @@ interface MojeDeloItem {
   regions?: { translation?: string }[];
 }
 
+/** Build a URL-friendly slug from a job title (for the /oglas/{slug}/{uuid} URL format). */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritics (ž→z, š→s, č→c)
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+}
+
 const PAGE_SIZE = 50;
-const MAX_PAGES = 20; // safety cap: 50 × 20 = 1000 max
+const MAX_PAGES = 4; // 50 × 4 = 200 max per keyword (API returns by relevance)
 
 /**
  * Search MojeDelo for jobs matching a keyword.
@@ -31,7 +45,7 @@ export async function searchMojeDelo(
 
   for (let page = 0; page < MAX_PAGES; page++) {
     const url = new URL(`${API_BASE}/job-ads-search`);
-    url.searchParams.set("searchTerm", keyword);
+    url.searchParams.set("keyword", keyword);
     url.searchParams.set("pageSize", String(PAGE_SIZE));
     url.searchParams.set("startFrom", String(page * PAGE_SIZE));
 
@@ -54,9 +68,9 @@ export async function searchMojeDelo(
         title: item.title,
         company: item.company?.name ?? "Unknown",
         location: item.town?.name ?? item.regions?.[0]?.translation ?? null,
-        url: `https://www.mojedelo.com/prosto-delovno-mesto/${item.jbqId}`,
+        url: `https://www.mojedelo.com/oglas/${slugify(item.title)}/${item.id}`,
         source: "mojedelo" as const,
-        externalId: `md-${item.jbqId}`,
+        externalId: `md-${item.id}`,
       }))
     );
 
@@ -77,7 +91,7 @@ export async function searchMojeDeloByCompany(
   // Search for company name in the general job search
   // MojeDelo's search includes company names in results
   const url = new URL(`${API_BASE}/job-ads-search`);
-  url.searchParams.set("searchTerm", companyName);
+  url.searchParams.set("keyword", companyName);
   url.searchParams.set("pageSize", String(limit));
   url.searchParams.set("startFrom", "0");
 
@@ -101,8 +115,8 @@ export async function searchMojeDeloByCompany(
       title: item.title,
       company: item.company?.name ?? companyName,
       location: item.town?.name ?? item.regions?.[0]?.translation ?? null,
-      url: `https://www.mojedelo.com/prosto-delovno-mesto/${item.jbqId}`,
+      url: `https://www.mojedelo.com/oglas/${slugify(item.title)}/${item.id}`,
       source: "mojedelo" as const,
-      externalId: `md-${item.jbqId}`,
+      externalId: `md-${item.id}`,
     }));
 }

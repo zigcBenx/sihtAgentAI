@@ -17,8 +17,9 @@ interface AgentDetailClientProps {
     desiredRole?: string;
     salaryMin?: string;
     salaryMax?: string;
-    locationPreference?: string;
-    specificCity?: string;
+    workMode?: string;
+    geoScope?: string;
+    geoValue?: string;
     frequency: string;
   };
   children: React.ReactNode;

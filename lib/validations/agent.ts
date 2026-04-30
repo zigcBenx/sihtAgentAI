@@ -2,10 +2,22 @@ import { z } from "zod/v4";
 
 export const agentTypes = ["job_search", "company_watcher"] as const;
 
-export const locationPreferences = [
-  "remote",
-  "slovenia",
-  "specific_city",
+export const workModes = ["remote", "hybrid", "onsite"] as const;
+export const geoScopes = ["anywhere", "slovenia", "region", "city"] as const;
+
+export const SLOVENIAN_REGIONS = [
+  "Gorenjska",
+  "Goriška",
+  "Jugovzhodna Slovenija",
+  "Koroška",
+  "Notranjsko-kraška",
+  "Obalno-kraška",
+  "Osrednjeslovenska",
+  "Podravska",
+  "Pomurska",
+  "Posavska",
+  "Savinjska",
+  "Zasavska",
 ] as const;
 
 export const frequencies = ["daily", "weekly"] as const;
@@ -18,8 +30,9 @@ export const createAgentSchema = z.object({
   searchTerms: z.string().max(2000).optional(),
   salaryMin: z.coerce.number().int().positive().optional(),
   salaryMax: z.coerce.number().int().positive().optional(),
-  locationPreference: z.enum(locationPreferences).optional(),
-  specificCity: z.string().max(100).optional(),
+  workMode: z.string().max(100).optional(),
+  geoScope: z.enum(geoScopes).optional(),
+  geoValue: z.string().max(500).optional(),
   frequency: z.enum(frequencies).default("daily"),
 });
 
@@ -31,8 +44,9 @@ export const updateAgentSchema = z.object({
   searchTerms: z.string().max(2000).optional(),
   salaryMin: z.coerce.number().int().positive().optional(),
   salaryMax: z.coerce.number().int().positive().optional(),
-  locationPreference: z.enum(locationPreferences).optional(),
-  specificCity: z.string().max(100).optional(),
+  workMode: z.string().max(100).optional(),
+  geoScope: z.enum(geoScopes).optional(),
+  geoValue: z.string().max(500).optional(),
 });
 
 export const watchedCompanySchema = z.object({

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { SLOVENIAN_REGIONS } from "@/lib/validations/agent";
 
 interface SettingsModalProps {
   open: boolean;
@@ -17,23 +18,42 @@ interface SettingsModalProps {
     desiredRole?: string;
     salaryMin?: string;
     salaryMax?: string;
-    locationPreference?: string;
-    specificCity?: string;
+    workMode?: string;
+    geoScope?: string;
+    geoValue?: string;
     frequency: string;
   };
 }
 
-const locationOptions = [
-  { value: "", label: "Not specified" },
+const WORK_MODE_CHIPS = [
   { value: "remote", label: "Remote" },
-  { value: "slovenia", label: "Anywhere in Slovenia" },
-  { value: "specific_city", label: "Specific city in Slovenia" },
-];
+  { value: "hybrid", label: "Hybrid" },
+  { value: "onsite", label: "On-site" },
+] as const;
+
+const GEO_SCOPE_OPTIONS = [
+  { value: "", label: "Anywhere" },
+  { value: "slovenia", label: "Slovenia" },
+  { value: "region", label: "Region" },
+  { value: "city", label: "Specific city" },
+] as const;
 
 const frequencyOptions = [
   { value: "daily", label: "Once a day" },
   { value: "weekly", label: "Once a week" },
 ];
+
+function toggleCsv(csv: string, val: string): string {
+  const items = csv.split(",").map((s) => s.trim()).filter(Boolean);
+  if (items.includes(val)) {
+    return items.filter((s) => s !== val).join(",");
+  }
+  return [...items, val].join(",");
+}
+
+function csvHas(csv: string, val: string): boolean {
+  return csv.split(",").map((s) => s.trim()).includes(val);
+}
 
 export function SettingsModal({
   open,
@@ -52,12 +72,9 @@ export function SettingsModal({
   );
   const [salaryMin, setSalaryMin] = useState(initialData.salaryMin ?? "");
   const [salaryMax, setSalaryMax] = useState(initialData.salaryMax ?? "");
-  const [locationPreference, setLocationPreference] = useState(
-    initialData.locationPreference ?? ""
-  );
-  const [specificCity, setSpecificCity] = useState(
-    initialData.specificCity ?? ""
-  );
+  const [workMode, setWorkMode] = useState(initialData.workMode ?? "");
+  const [geoScope, setGeoScope] = useState(initialData.geoScope ?? "");
+  const [geoValue, setGeoValue] = useState(initialData.geoValue ?? "");
   const [frequency, setFrequency] = useState(initialData.frequency);
 
   // Reset form when modal opens
@@ -67,8 +84,9 @@ export function SettingsModal({
       setProfileSummary(initialData.profileSummary ?? initialData.desiredRole ?? "");
       setSalaryMin(initialData.salaryMin ?? "");
       setSalaryMax(initialData.salaryMax ?? "");
-      setLocationPreference(initialData.locationPreference ?? "");
-      setSpecificCity(initialData.specificCity ?? "");
+      setWorkMode(initialData.workMode ?? "");
+      setGeoScope(initialData.geoScope ?? "");
+      setGeoValue(initialData.geoValue ?? "");
       setFrequency(initialData.frequency);
       setError("");
     }
@@ -94,8 +112,9 @@ export function SettingsModal({
     if (isJobSearch) {
       if (salaryMin) payload.salaryMin = Number(salaryMin);
       if (salaryMax) payload.salaryMax = Number(salaryMax);
-      if (locationPreference) payload.locationPreference = locationPreference;
-      if (specificCity) payload.specificCity = specificCity;
+      payload.workMode = workMode || undefined;
+      payload.geoScope = geoScope || undefined;
+      payload.geoValue = geoValue || undefined;
     }
 
     try {
@@ -207,21 +226,99 @@ export function SettingsModal({
                 />
               </div>
 
-              <Select
-                id="locationPreference"
-                label="Location Preference"
-                options={locationOptions}
-                value={locationPreference}
-                onChange={(e) => setLocationPreference(e.target.value)}
-              />
+              {/* Work mode — multi-select */}
+              <div>
+                <label className="block text-sm font-medium text-muted-light mb-2">
+                  Work mode
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWorkMode("")}
+                    className={`rounded-full px-3.5 py-1.5 text-sm transition-all cursor-pointer ${
+                      !workMode
+                        ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                        : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                    }`}
+                  >
+                    Doesn&apos;t matter
+                  </button>
+                  {WORK_MODE_CHIPS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setWorkMode(toggleCsv(workMode, opt.value))}
+                      className={`rounded-full px-3.5 py-1.5 text-sm transition-all cursor-pointer ${
+                        csvHas(workMode, opt.value)
+                          ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                          : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              {locationPreference === "specific_city" && (
+              {/* Geographic area */}
+              <div>
+                <label className="block text-sm font-medium text-muted-light mb-2">
+                  Where?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {GEO_SCOPE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setGeoScope(opt.value);
+                        if (opt.value !== "region" && opt.value !== "city") {
+                          setGeoValue("");
+                        }
+                      }}
+                      className={`rounded-full px-3.5 py-1.5 text-sm transition-all cursor-pointer ${
+                        geoScope === opt.value
+                          ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                          : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {geoScope === "region" && (
+                <div>
+                  <label className="block text-sm font-medium text-muted-light mb-2">
+                    Select regions
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {SLOVENIAN_REGIONS.map((region) => (
+                      <button
+                        key={region}
+                        type="button"
+                        onClick={() => setGeoValue(toggleCsv(geoValue, region))}
+                        className={`rounded-full px-3 py-1.5 text-sm transition-all cursor-pointer ${
+                          csvHas(geoValue, region)
+                            ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
+                            : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                        }`}
+                      >
+                        {region}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {geoScope === "city" && (
                 <Input
-                  id="specificCity"
-                  label="City"
-                  placeholder="e.g. Ljubljana"
-                  value={specificCity}
-                  onChange={(e) => setSpecificCity(e.target.value)}
+                  id="geoValue"
+                  label="Cities"
+                  placeholder="e.g. Ljubljana, Maribor, Celje"
+                  value={geoValue}
+                  onChange={(e) => setGeoValue(e.target.value)}
                 />
               )}
             </>

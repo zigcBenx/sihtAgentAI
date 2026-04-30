@@ -45,6 +45,30 @@ const SYNONYM_GROUPS: string[][] = [
 ];
 
 /**
+ * Tech-specific keywords worth searching as standalone terms.
+ * These often appear in job descriptions but not titles (e.g. a "Junior Programer"
+ * listing that mentions Laravel in the body). Generic role words like "developer"
+ * are excluded — they're too broad for standalone API searches.
+ */
+export const TECH_KEYWORDS = new Set([
+  "frontend", "front-end", "backend", "back-end", "fullstack", "full-stack",
+  "devops", "sre", "mobile", "ios", "android",
+  "wordpress", "wp",
+  "php", "laravel", "symfony",
+  "javascript", "typescript",
+  "python", "django", "flask",
+  "java", "spring", "kotlin",
+  "react", "next.js", "nextjs",
+  "angular", "vue", "svelte",
+  ".net", "dotnet", "c#",
+  "ruby", "rails",
+  "go", "golang",
+  "rust",
+  "node", "nodejs", "node.js",
+  "machine learning", "ai",
+]);
+
+/**
  * Given a user's desired role string, expand it into multiple search terms
  * and a set of matching keywords for filtering results.
  *
@@ -110,8 +134,17 @@ export function expandKeywords(desiredRole: string): {
     }
   }
 
+  // Also add individual tech keywords as standalone search terms.
+  // APIs like MojeDelo search descriptions, so "laravel" alone will find
+  // jobs titled "Junior Programer" that mention Laravel in the body.
+  for (const kw of allMatchKeywords) {
+    if (TECH_KEYWORDS.has(kw)) {
+      searchTerms.add(kw);
+    }
+  }
+
   return {
-    searchTerms: [...searchTerms].slice(0, 8), // Cap at 8 search queries
+    searchTerms: [...searchTerms].slice(0, 10), // Cap at 10 search queries
     matchKeywords: [...allMatchKeywords].filter((k) => k.length > 2),
   };
 }

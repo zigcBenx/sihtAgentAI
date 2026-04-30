@@ -12,7 +12,7 @@ import { searchEss } from "./ess";
 import { fetchInzaposlitev } from "./inzaposlitev";
 import { searchCareerjet } from "./careerjet";
 import { scrapeCareerPage } from "./careers-scraper";
-import { expandKeywords } from "./keywords";
+import { expandKeywords, TECH_KEYWORDS } from "./keywords";
 import type { JobListing } from "./types";
 
 interface AgentWithCompanies {
@@ -22,14 +22,31 @@ interface AgentWithCompanies {
   desiredRole: string | null;
   profileSummary: string | null;
   searchTerms: string | null;
-  locationPreference: string | null;
-  specificCity: string | null;
+  workMode: string | null;
+  geoScope: string | null;
+  geoValue: string | null;
   watchedCompanies: {
     id: string;
     companyName: string;
     careersUrl: string | null;
   }[];
 }
+
+/** Major cities/towns mapped to their statistical region (lowercase) */
+const REGION_CITIES: Record<string, string[]> = {
+  gorenjska: ["kranj", "bled", "jesenice", "radovljica", "škofja loka", "tržič", "žirovnica"],
+  goriška: ["nova gorica", "ajdovščina", "idrija", "tolmin", "bovec", "kanal", "kobarid"],
+  "jugovzhodna slovenija": ["novo mesto", "črnomelj", "metlika", "trebnje", "kočevje", "ribnica", "žužemberk"],
+  koroška: ["slovenj gradec", "ravne na koroškem", "dravograd", "prevalje", "mežica", "črna na koroškem"],
+  "notranjsko-kraška": ["postojna", "ilirska bistrica", "cerknica", "pivka", "loška dolina"],
+  "obalno-kraška": ["koper", "izola", "piran", "sežana", "hrpelje-kozina", "komen", "divača"],
+  osrednjeslovenska: ["ljubljana", "domžale", "kamnik", "grosuplje", "vrhnika", "logatec", "litija", "medvode", "škofljica", "brezovica"],
+  podravska: ["maribor", "ptuj", "slovenska bistrica", "lenart", "ruše", "ormož", "kidričevo", "pesnica"],
+  pomurska: ["murska sobota", "ljutomer", "gornja radgona", "lendava", "beltinci", "črenšovci"],
+  posavska: ["krško", "brežice", "sevnica", "kostanjevica na krki"],
+  savinjska: ["celje", "velenje", "žalec", "šentjur", "laško", "šoštanj", "mozirje", "nazarje", "rogaška slatina"],
+  zasavska: ["trbovlje", "zagorje ob savi", "hrastnik"],
+};
 
 export interface LogEntry {
   step: string;
@@ -86,9 +103,30 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
 
   if (agent.searchTerms) {
     try {
-      resolvedSearchTerms = JSON.parse(agent.searchTerms) as string[];
+      const generated = JSON.parse(agent.searchTerms) as string[];
       // Use search terms as match keywords too (lowercased)
-      resolvedMatchKeywords = resolvedSearchTerms.map((t) => t.toLowerCase());
+      resolvedMatchKeywords = generated.map((t) => t.toLowerCase());
+
+      // Extract standalone tech keywords from the pre-generated terms.
+      // APIs like MojeDelo search descriptions, so searching "laravel" alone
+      // finds jobs titled "Junior Programer" that mention Laravel in the body.
+      const standaloneTerms: string[] = [];
+      const seen = new Set(generated.map((s) => s.toLowerCase()));
+      for (const term of generated) {
+        for (const word of term.toLowerCase().split(/\s+/)) {
+          if (TECH_KEYWORDS.has(word) && !seen.has(word)) {
+            standaloneTerms.push(word);
+            seen.add(word);
+          }
+        }
+      }
+
+      // Interleave: first few combo terms, then standalone tech, then remaining combos.
+      // This ensures standalone tech terms get searched even if we cap total queries.
+      const first = generated.slice(0, 5);
+      const rest = generated.slice(5);
+      resolvedSearchTerms = [...first, ...standaloneTerms, ...rest];
+
       log.push({
         step: "keywords",
         detail: `Using generated search terms: ${resolvedSearchTerms.join(", ")}`,
@@ -131,8 +169,8 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
 
     const { listings, fetchLog } = await fetchJobListings(
       resolvedSearchTerms,
-      agent.locationPreference,
-      agent.specificCity
+      agent.geoScope,
+      agent.geoValue
     );
     log.push(...fetchLog);
 
@@ -156,9 +194,13 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
       resolvedMatchKeywords
     );
 
+    const perfect = matched.filter((m) => m.relevance === "perfect").length;
+    const good = matched.filter((m) => m.relevance === "good").length;
+    const partial = matched.filter((m) => m.relevance === "partial").length;
+
     log.push({
       step: "filter_result",
-      detail: `${matched.length} passed, ${roleRejected} rejected by role, ${locationRejected} rejected by location`,
+      detail: `${matched.length} matched (${perfect} perfect, ${good} good, ${partial} partial), ${roleRejected} rejected by role, ${locationRejected} rejected by location`,
       count: matched.length,
     });
 
@@ -341,19 +383,26 @@ async function runCompanyWatcher(agent: AgentWithCompanies): Promise<RunResult> 
  */
 async function fetchJobListings(
   searchTerms: string[],
-  locationPref: string | null,
-  specificCity: string | null
+  geoScope: string | null,
+  geoValue: string | null
 ): Promise<{ listings: JobListing[]; fetchLog: LogEntry[] }> {
   const fetchLog: LogEntry[] = [];
+  // For Optius RSS, pass region or city as hint
   const regionHint =
-    locationPref === "specific_city" ? specificCity : undefined;
+    geoScope === "region" || geoScope === "city" ? (geoValue ?? undefined) : undefined;
 
   const results: JobListing[] = [];
 
-  const mojeDeloTerms = searchTerms.slice(0, 3);
+  // Search MojeDelo with all terms (combo phrases + standalone tech keywords).
+  // Standalone tech terms (appended at end) are crucial for finding description-level
+  // matches like "Junior Programer" listing that mentions Laravel in body.
+  // Cap at 10 to avoid excessive API calls (each term paginates up to 4 pages).
+  const mojeDeloTerms = searchTerms.slice(0, 10);
   for (const term of mojeDeloTerms) {
     try {
       const jobs = await searchMojeDelo(term);
+      // MojeDelo API searches descriptions — tag as search-matched
+      for (const j of jobs) j.searchMatched = true;
       results.push(...jobs);
       fetchLog.push({
         step: "source_mojedelo",
@@ -388,6 +437,8 @@ async function fetchJobListings(
   for (const term of essTerms) {
     try {
       const jobs = await searchEss(term);
+      // ESS API searches descriptions — tag as search-matched
+      for (const j of jobs) j.searchMatched = true;
       results.push(...jobs);
       fetchLog.push({
         step: "source_ess",
@@ -425,8 +476,10 @@ async function fetchJobListings(
       try {
         const jobs = await searchCareerjet(
           cjTerm,
-          specificCity ?? undefined
+          geoValue ?? undefined
         );
+        // Careerjet searches descriptions — tag as search-matched
+        for (const j of jobs) j.searchMatched = true;
         results.push(...jobs);
         fetchLog.push({
           step: "source_careerjet",
@@ -445,43 +498,100 @@ async function fetchJobListings(
   return { listings: results, fetchLog };
 }
 
+// Words too generic to count as a meaningful match on their own
+const STOP_WORDS = new Set([
+  "senior", "junior", "lead", "head", "chief", "manager", "assistant",
+  "intern", "trainee", "specialist", "expert", "consultant", "associate",
+  "full", "stack", "part", "time", "m/ž", "m/f", "ii", "iii", "i",
+  "za", "in", "na", "pri", "ali", "ter", "po", "iz", "do", "se",
+  "der", "die", "und", "für", "von", "mit",
+]);
+
 /**
- * Filter listings against agent preferences using expanded keywords.
+ * Filter and categorize listings by relevance.
+ * - perfect: full search phrase found in title
+ * - good: 2+ meaningful keyword words match
+ * - partial: 1 meaningful keyword word matches
+ * - rejected: no meaningful words match
  */
 function filterByPreferences(
   listings: JobListing[],
   agent: AgentWithCompanies,
   matchKeywords: string[]
-): { matched: JobListing[]; roleRejected: number; locationRejected: number } {
+): { matched: JobListing[]; locationRejected: number; roleRejected: number } {
   const matched: JobListing[] = [];
   let roleRejected = 0;
   let locationRejected = 0;
 
+  // Extract unique meaningful words from all keywords
+  const meaningfulWords = new Set<string>();
+  for (const kw of matchKeywords) {
+    for (const word of kw.split(/[\s\/,\-]+/)) {
+      const w = word.toLowerCase().trim();
+      if (w.length >= 3 && !STOP_WORDS.has(w)) {
+        meaningfulWords.add(w);
+      }
+    }
+  }
+  const wordList = [...meaningfulWords];
+
   for (const job of listings) {
     const titleLower = job.title.toLowerCase();
 
-    if (matchKeywords.length > 0) {
-      const matchedKw = matchKeywords.find((kw) => titleLower.includes(kw));
-      if (!matchedKw) {
-        roleRejected++;
+    // Geographic filter (hard reject) — supports comma-separated values
+    if (agent.geoScope === "city" && agent.geoValue && job.location) {
+      const cities = agent.geoValue.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+      const locLower = job.location.toLowerCase();
+      const cityMatch = cities.some((city) => locLower.includes(city));
+      if (!cityMatch) {
+        locationRejected++;
         continue;
       }
-    }
-
-    if (
-      agent.locationPreference === "specific_city" &&
-      agent.specificCity &&
-      job.location
-    ) {
-      const cityLower = agent.specificCity.toLowerCase();
+    } else if (agent.geoScope === "region" && agent.geoValue && job.location) {
+      const regions = agent.geoValue.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
       const locLower = job.location.toLowerCase();
-      if (!locLower.includes(cityLower)) {
+      // Match if location contains any selected region name or any city in those regions
+      const regionMatch = regions.some((regionKey) => {
+        const cities = REGION_CITIES[regionKey] ?? [];
+        return locLower.includes(regionKey) || cities.some((city) => locLower.includes(city));
+      });
+      if (!regionMatch) {
         locationRejected++;
         continue;
       }
     }
 
-    matched.push(job);
+    // Relevance scoring
+    if (matchKeywords.length > 0) {
+      // Check full phrase match first
+      const fullMatch = matchKeywords.some((kw) => titleLower.includes(kw));
+      if (fullMatch) {
+        job.relevance = "perfect";
+        matched.push(job);
+        continue;
+      }
+
+      // Count individual word matches
+      const matchedWords = wordList.filter((w) => titleLower.includes(w));
+
+      if (matchedWords.length >= 2) {
+        job.relevance = "good";
+        matched.push(job);
+      } else if (matchedWords.length === 1) {
+        job.relevance = "partial";
+        matched.push(job);
+      } else if (job.searchMatched) {
+        // No title match, but the API found this via description search
+        // (e.g. "Junior Programer" listing that mentions Laravel in the body)
+        job.relevance = "partial";
+        matched.push(job);
+      } else {
+        roleRejected++;
+      }
+    } else {
+      job.relevance = "other";
+      matched.push(job);
+    }
   }
 
   return { matched, roleRejected, locationRejected };
@@ -518,6 +628,7 @@ async function deduplicateAndStore(
       url: l.url,
       source: l.source,
       externalId: l.externalId,
+      relevance: l.relevance ?? "other",
     }))
   );
 
