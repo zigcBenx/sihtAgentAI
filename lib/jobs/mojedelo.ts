@@ -17,40 +17,53 @@ interface MojeDeloItem {
   regions?: { translation?: string }[];
 }
 
+const PAGE_SIZE = 50;
+const MAX_PAGES = 20; // safety cap: 50 × 20 = 1000 max
+
 /**
  * Search MojeDelo for jobs matching a keyword.
- * Returns up to `limit` normalized results.
+ * Paginates through all results automatically.
  */
 export async function searchMojeDelo(
-  keyword: string,
-  limit = 30
+  keyword: string
 ): Promise<JobListing[]> {
-  const url = new URL(`${API_BASE}/job-ads-search`);
-  url.searchParams.set("searchTerm", keyword);
-  url.searchParams.set("pageSize", String(limit));
-  url.searchParams.set("startFrom", "0");
+  const results: JobListing[] = [];
 
-  const res = await fetch(url.toString(), {
-    headers: { ...HEADERS },
-    signal: AbortSignal.timeout(15000),
-  });
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const url = new URL(`${API_BASE}/job-ads-search`);
+    url.searchParams.set("searchTerm", keyword);
+    url.searchParams.set("pageSize", String(PAGE_SIZE));
+    url.searchParams.set("startFrom", String(page * PAGE_SIZE));
 
-  if (!res.ok) {
-    console.error(`MojeDelo API error: ${res.status}`);
-    return [];
+    const res = await fetch(url.toString(), {
+      headers: { ...HEADERS },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!res.ok) {
+      console.error(`MojeDelo API error: ${res.status}`);
+      break;
+    }
+
+    const json = await res.json();
+    const items: MojeDeloItem[] = json?.data?.items ?? [];
+    const total: number = json?.data?.total ?? 0;
+
+    results.push(
+      ...items.map((item) => ({
+        title: item.title,
+        company: item.company?.name ?? "Unknown",
+        location: item.town?.name ?? item.regions?.[0]?.translation ?? null,
+        url: `https://www.mojedelo.com/prosto-delovno-mesto/${item.jbqId}`,
+        source: "mojedelo" as const,
+        externalId: `md-${item.jbqId}`,
+      }))
+    );
+
+    if (results.length >= total || items.length < PAGE_SIZE) break;
   }
 
-  const json = await res.json();
-  const items: MojeDeloItem[] = json?.data?.items ?? [];
-
-  return items.map((item) => ({
-    title: item.title,
-    company: item.company?.name ?? "Unknown",
-    location: item.town?.name ?? item.regions?.[0]?.translation ?? null,
-    url: `https://www.mojedelo.com/prosto-delovno-mesto/${item.jbqId}`,
-    source: "mojedelo" as const,
-    externalId: `md-${item.jbqId}`,
-  }));
+  return results;
 }
 
 /**

@@ -120,7 +120,7 @@ export const jobMatches = sqliteTable("job_matches", {
   company: text("company").notNull(),
   location: text("location"),
   url: text("url").notNull(),
-  source: text("source").notNull(), // "mojedelo" | "optius"
+  source: text("source").notNull(), // "mojedelo" | "optius" | "ess" | "inzaposlitev" | "careerjet"
   externalId: text("external_id"), // dedup key from source
   seen: integer("seen", { mode: "boolean" }).notNull().default(false),
   foundAt: integer("found_at", { mode: "timestamp" })

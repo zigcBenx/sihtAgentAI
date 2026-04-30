@@ -4,6 +4,6 @@ export interface JobListing {
   company: string;
   location: string | null;
   url: string;
-  source: "mojedelo" | "optius" | "careers";
+  source: "mojedelo" | "optius" | "careers" | "ess" | "inzaposlitev" | "careerjet";
   externalId: string;
 }

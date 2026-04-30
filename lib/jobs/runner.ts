@@ -8,6 +8,9 @@ import {
 import { eq, and } from "drizzle-orm";
 import { searchMojeDelo } from "./mojedelo";
 import { fetchOptius } from "./optius";
+import { searchEss } from "./ess";
+import { fetchInzaposlitev } from "./inzaposlitev";
+import { searchCareerjet } from "./careerjet";
 import { scrapeCareerPage } from "./careers-scraper";
 import { expandKeywords } from "./keywords";
 import type { JobListing } from "./types";
@@ -147,20 +150,16 @@ async function runJobSearch(agent: AgentWithCompanies): Promise<RunResult> {
       count: uniqueListings.length,
     });
 
-    const { matched, itemLog } = filterByPreferences(
+    const { matched, roleRejected, locationRejected } = filterByPreferences(
       uniqueListings,
       agent,
       resolvedMatchKeywords
     );
 
-    const roleRejected = itemLog.filter((i) => i.status === "rejected_role").length;
-    const locationRejected = itemLog.filter((i) => i.status === "rejected_location").length;
-
     log.push({
       step: "filter_result",
       detail: `${matched.length} passed, ${roleRejected} rejected by role, ${locationRejected} rejected by location`,
       count: matched.length,
-      items: itemLog,
     });
 
     const stored = await deduplicateAndStore(matched, agent.id);
@@ -384,6 +383,65 @@ async function fetchJobListings(
     });
   }
 
+  // ESS/ZRSZ — search with same terms (up to 3)
+  const essTerms = searchTerms.slice(0, 3);
+  for (const term of essTerms) {
+    try {
+      const jobs = await searchEss(term);
+      results.push(...jobs);
+      fetchLog.push({
+        step: "source_ess",
+        detail: `ESS "${term}" → ${jobs.length} results`,
+        count: jobs.length,
+      });
+    } catch (err) {
+      fetchLog.push({
+        step: "source_ess_error",
+        detail: `ESS "${term}" failed: ${err instanceof Error ? err.message : "Unknown"}`,
+      });
+    }
+  }
+
+  // Inzaposlitev.net — fetch all listings (no keyword search, filtering happens later)
+  try {
+    const jobs = await fetchInzaposlitev();
+    results.push(...jobs);
+    fetchLog.push({
+      step: "source_inzaposlitev",
+      detail: `Inzaposlitev → ${jobs.length} results`,
+      count: jobs.length,
+    });
+  } catch (err) {
+    fetchLog.push({
+      step: "source_inzaposlitev_error",
+      detail: `Inzaposlitev failed: ${err instanceof Error ? err.message : "Unknown"}`,
+    });
+  }
+
+  // Careerjet — search with first term (requires API key)
+  if (process.env.CAREERJET_API_KEY) {
+    const cjTerm = searchTerms[0];
+    if (cjTerm) {
+      try {
+        const jobs = await searchCareerjet(
+          cjTerm,
+          specificCity ?? undefined
+        );
+        results.push(...jobs);
+        fetchLog.push({
+          step: "source_careerjet",
+          detail: `Careerjet "${cjTerm}" → ${jobs.length} results`,
+          count: jobs.length,
+        });
+      } catch (err) {
+        fetchLog.push({
+          step: "source_careerjet_error",
+          detail: `Careerjet "${cjTerm}" failed: ${err instanceof Error ? err.message : "Unknown"}`,
+        });
+      }
+    }
+  }
+
   return { listings: results, fetchLog };
 }
 
@@ -394,26 +452,18 @@ function filterByPreferences(
   listings: JobListing[],
   agent: AgentWithCompanies,
   matchKeywords: string[]
-): { matched: JobListing[]; itemLog: LogItem[] } {
+): { matched: JobListing[]; roleRejected: number; locationRejected: number } {
   const matched: JobListing[] = [];
-  const itemLog: LogItem[] = [];
+  let roleRejected = 0;
+  let locationRejected = 0;
 
   for (const job of listings) {
     const titleLower = job.title.toLowerCase();
-    const item: LogItem = {
-      title: job.title,
-      company: job.company,
-      location: job.location,
-      url: job.url,
-      status: "matched",
-    };
 
     if (matchKeywords.length > 0) {
       const matchedKw = matchKeywords.find((kw) => titleLower.includes(kw));
       if (!matchedKw) {
-        item.status = "rejected_role";
-        item.reason = `Title "${job.title}" doesn't contain any of: ${matchKeywords.join(", ")}`;
-        itemLog.push(item);
+        roleRejected++;
         continue;
       }
     }
@@ -426,19 +476,15 @@ function filterByPreferences(
       const cityLower = agent.specificCity.toLowerCase();
       const locLower = job.location.toLowerCase();
       if (!locLower.includes(cityLower)) {
-        item.status = "rejected_location";
-        item.reason = `Location "${job.location}" doesn't match "${agent.specificCity}"`;
-        itemLog.push(item);
+        locationRejected++;
         continue;
       }
     }
 
-    item.status = "matched";
     matched.push(job);
-    itemLog.push(item);
   }
 
-  return { matched, itemLog };
+  return { matched, roleRejected, locationRejected };
 }
 
 /**
