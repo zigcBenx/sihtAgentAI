@@ -181,7 +181,7 @@ export default function Home() {
             </span>
             <h3 className="text-lg font-bold text-foreground">Pro</h3>
             <div className="mt-2 mb-5">
-              <span className="text-3xl font-bold text-foreground">$4.99</span>
+              <span className="text-3xl font-bold text-foreground">6.99€</span>
               <span className="text-sm text-muted">/month</span>
             </div>
             <ul className="space-y-2.5 text-sm text-muted-light mb-6">

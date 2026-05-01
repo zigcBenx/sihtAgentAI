@@ -74,7 +74,7 @@ export function UpgradeModal({ open, onClose, reason }: UpgradeModalProps) {
           {headline}
         </h2>
         <p className="text-sm text-muted mb-5">
-          Go Pro for $4.99/mo and unlock the full power of your agents.
+          Go Pro for 6.99€/mo and unlock the full power of your agents.
         </p>
 
         {/* Benefits */}
