@@ -110,17 +110,15 @@ export function AgentDetailHeader({
         </Link>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-foreground truncate">
-              {agentName}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted">
+          <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">
+            {agentName}
+          </h1>
+          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-muted">
             <span>{typeLabel}</span>
             {lastRunAt && (
               <>
                 <span className="text-surface-border">·</span>
-                <span>Last scan: {new Date(lastRunAt).toLocaleDateString()}</span>
+                <span>Last: {new Date(lastRunAt).toLocaleDateString()}</span>
               </>
             )}
           </div>
@@ -151,7 +149,7 @@ export function AgentDetailHeader({
       </div>
 
       {/* Automatic scanning toggle — clear labeled section */}
-      <div className={`flex items-center justify-between rounded-2xl border bg-surface p-4 transition-all duration-700 ${
+      <div className={`flex items-center justify-between rounded-2xl border bg-surface p-3.5 sm:p-4 transition-all duration-700 ${
         showToggleGlow
           ? "border-accent/60 shadow-[0_0_15px_rgba(79,70,229,0.12)]"
           : "border-surface-border"
@@ -187,30 +185,28 @@ export function AgentDetailHeader({
       </div>
 
       {/* Scan now — one-time action */}
-      <Button
+      <button
         onClick={handleRun}
         disabled={running}
-        variant="secondary"
-        size="default"
-        className="w-full"
+        className="w-full flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-b from-accent to-accent-hover text-white font-semibold py-3.5 px-5 text-sm shadow-[0_2px_8px_rgba(79,70,229,0.35),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_4px_16px_rgba(79,70,229,0.45)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
       >
         {running ? (
-          <span className="flex items-center gap-2">
-            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+          <>
+            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             Scanning now...
-          </span>
+          </>
         ) : (
-          <span className="flex items-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          <>
+            <svg className="h-5 w-5 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5.14v14l11-7-11-7z" />
             </svg>
-            Scan once now
-          </span>
+            Run scan now
+          </>
         )}
-      </Button>
+      </button>
 
       {/* Run result/error feedback */}
       {runResult && (() => {

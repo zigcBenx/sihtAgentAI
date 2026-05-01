@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -52,6 +52,11 @@ export function JobMatches({
   const [matches, setMatches] = useState(initialMatches);
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [showUpgrade, setShowUpgrade] = useState(false);
+
+  // Sync with server data when props change (e.g. after router.refresh())
+  useEffect(() => {
+    setMatches(initialMatches);
+  }, [initialMatches]);
 
   async function patchMatch(matchId: string, body: { favorited?: boolean; discarded?: boolean }) {
     const res = await fetch(`/api/agents/${agentId}/matches/${matchId}`, {
@@ -136,11 +141,11 @@ export function JobMatches({
     />
     <Card>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <svg className="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <svg className="h-5 w-5 sm:h-6 sm:w-6 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <h3 className="text-xl font-bold text-foreground">Job Matches</h3>
+          <h3 className="text-lg sm:text-xl font-bold text-foreground">Job Matches</h3>
           <Badge variant="success">{matches.filter((m) => !m.discarded).length}</Badge>
         </div>
         {unseenCount > 0 && (
@@ -200,9 +205,10 @@ export function JobMatches({
 
                       if (isBlurred) {
                         return (
-                          <div
+                          <button
                             key={match.id}
-                            className="flex items-start justify-between gap-3 rounded-xl px-4 py-3 bg-surface-light select-none"
+                            onClick={() => setShowUpgrade(true)}
+                            className="w-full flex items-start justify-between gap-3 rounded-xl px-4 py-3 bg-surface-light select-none cursor-pointer hover:bg-surface-border/30 transition-colors text-left"
                           >
                             <div className="min-w-0 flex-1 blur-[6px] pointer-events-none">
                               <div className="flex items-center gap-2 mb-0.5">
@@ -217,7 +223,7 @@ export function JobMatches({
                             <div className="shrink-0">
                               <span className="text-[10px] text-muted blur-[4px]">{match.source}</span>
                             </div>
-                          </div>
+                          </button>
                         );
                       }
 
@@ -227,7 +233,7 @@ export function JobMatches({
                           href={match.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`flex items-start justify-between gap-3 rounded-xl px-4 py-3 transition-colors group ${
+                          className={`flex items-start justify-between gap-2 sm:gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 transition-colors group ${
                             match.favorited
                               ? "bg-red-500/5 hover:bg-red-500/10"
                               : "bg-surface-light hover:bg-surface-border/50"
@@ -238,22 +244,22 @@ export function JobMatches({
                               {!match.seen && (
                                 <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
                               )}
-                              <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors truncate">
+                              <span className="text-xs sm:text-sm font-medium text-foreground group-hover:text-accent transition-colors truncate">
                                 {match.title}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-muted">
-                              <span>{match.company}</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted">
+                              <span className="truncate">{match.company}</span>
                               {match.location && (
                                 <>
                                   <span className="text-surface-border">·</span>
-                                  <span>{match.location}</span>
+                                  <span className="truncate">{match.location}</span>
                                 </>
                               )}
                             </div>
                           </div>
-                          <div className="shrink-0 flex items-center gap-2">
-                            <div className="flex flex-col items-end gap-1 mr-1">
+                          <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
+                            <div className="flex-col items-end gap-1 mr-0.5 sm:mr-1 hidden sm:flex">
                               <span className="text-[10px] text-muted">{timeAgo(match.foundAt)}</span>
                               <span className="text-[10px] text-muted/50">{match.source}</span>
                             </div>
@@ -261,7 +267,7 @@ export function JobMatches({
                             {/* Favorite button */}
                             <button
                               onClick={(e) => toggleFavorite(e, match)}
-                              className={`p-1.5 rounded-lg transition-colors ${
+                              className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
                                 match.favorited
                                   ? "text-red-500 hover:text-red-600"
                                   : "text-muted/40 hover:text-red-400"
@@ -269,7 +275,7 @@ export function JobMatches({
                               title={match.favorited ? "Remove from favorites" : "Add to favorites"}
                             >
                               <svg
-                                className="h-4 w-4"
+                                className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                                 viewBox="0 0 24 24"
                                 fill={match.favorited ? "currentColor" : "none"}
                                 stroke="currentColor"
@@ -287,20 +293,20 @@ export function JobMatches({
                             {activeTab === "discarded" ? (
                               <button
                                 onClick={(e) => toggleDiscard(e, match)}
-                                className="p-1.5 rounded-lg text-muted/40 hover:text-emerald-500 transition-colors"
+                                className="p-1 sm:p-1.5 rounded-lg text-muted/40 hover:text-emerald-500 transition-colors"
                                 title="Restore"
                               >
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
                                 </svg>
                               </button>
                             ) : (
                               <button
                                 onClick={(e) => toggleDiscard(e, match)}
-                                className="p-1.5 rounded-lg text-muted/40 hover:text-red-400 transition-colors"
+                                className="p-1 sm:p-1.5 rounded-lg text-muted/40 hover:text-red-400 transition-colors"
                                 title="Discard"
                               >
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                                 </svg>
                               </button>

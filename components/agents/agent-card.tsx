@@ -119,12 +119,12 @@ export function AgentCard({ agent }: { agent: Agent }) {
 
           {/* Content */}
           <div className="min-w-0 flex-1">
-            {/* Name row */}
-            <div className="flex items-center gap-1.5 sm:gap-2 mb-1 min-w-0">
-              <h3 className="text-sm sm:text-base font-bold text-foreground truncate min-w-0">
-                {agent.name}
-              </h3>
-              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <h3 className="text-sm sm:text-base font-bold text-foreground truncate mb-1">
+              {agent.name}
+            </h3>
+
+            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+              <div className="flex items-center gap-1 sm:gap-1.5">
                 {totalNew > 0 && (
                   <Badge variant="success">{totalNew} new</Badge>
                 )}
@@ -132,20 +132,16 @@ export function AgentCard({ agent }: { agent: Agent }) {
                   {agent.isActive ? "Live" : "Off"}
                 </Badge>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted">
-              <span>{stat}</span>
+              <span className="text-surface-border hidden sm:inline">·</span>
+              <span className="text-xs text-muted">{stat}</span>
               <span className="text-surface-border">·</span>
-              {agent.lastRunAt ? (
-                <span>{formatTimeAgo(agent.lastRunAt)}</span>
-              ) : (
-                <span>Not scanned</span>
-              )}
+              <span className="text-xs text-muted">
+                {agent.lastRunAt ? formatTimeAgo(agent.lastRunAt) : "Not scanned"}
+              </span>
             </div>
 
             {(agent.profileSummary || agent.desiredRole) && (
-              <p className="text-xs text-muted mt-1.5 truncate hidden sm:block">
+              <p className="text-xs text-muted mt-0.5 truncate hidden sm:block">
                 {agent.profileSummary ?? agent.desiredRole}
               </p>
             )}
