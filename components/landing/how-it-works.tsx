@@ -66,12 +66,12 @@ function StepUploadCV() {
 /* ─── Fake UI mockup: Pick job titles ──────────────────────────── */
 function StepPickRoles() {
   const [selected, setSelected] = useState<string[]>([]);
-  const roles = ["Software Development", "Marketing", "Design", "Data & Analytics", "Product Management", "Engineering"];
+  const roles = ["Programer / Developer", "Marketing", "Elektrikar", "Proizvodnja", "Prodaja / Sales", "Zdravstvo"];
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setSelected(["Software Development"]), 1200),
-      setTimeout(() => setSelected(["Software Development", "Engineering"]), 2200),
+      setTimeout(() => setSelected(["Programer / Developer"]), 1200),
+      setTimeout(() => setSelected(["Programer / Developer", "Elektrikar"]), 2200),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);

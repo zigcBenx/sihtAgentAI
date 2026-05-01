@@ -17,21 +17,52 @@ type Step =
   | "configure"
   | "generating";
 
-const WORK_SUGGESTIONS = [
-  "Software Development",
-  "Marketing",
-  "Finance",
-  "Design",
-  "Management",
-  "Sales",
-  "HR",
-  "Legal",
-  "Operations",
-  "Data & Analytics",
-  "Customer Support",
-  "Product Management",
-  "Engineering",
-  "Content & Writing",
+const WORK_CATEGORIES = [
+  {
+    label: "IT & razvoj",
+    suggestions: [
+      "Programer / Developer",
+      "Sistemski administrator",
+      "Data & analitika",
+      "UX / UI dizajn",
+      "Product management",
+    ],
+  },
+  {
+    label: "Pisarna & administracija",
+    suggestions: [
+      "Marketing",
+      "Finance / računovodstvo",
+      "Kadrovnik / HR",
+      "Prodaja / Sales",
+      "Administracija",
+      "Pravo / Legal",
+    ],
+  },
+  {
+    label: "Obrt & fizično delo",
+    suggestions: [
+      "Elektrikar",
+      "Strojnik / mehanik",
+      "Voznik / šofer",
+      "Proizvodnja / delavec",
+      "Skladiščnik",
+      "Gradbenik",
+      "Vzdrževalec",
+      "Varnostnik",
+    ],
+  },
+  {
+    label: "Storitve & drugo",
+    suggestions: [
+      "Kuhar / gostinstvo",
+      "Trgovec / prodajalec",
+      "Zdravstvo / nega",
+      "Izobraževanje",
+      "Logistika & transport",
+      "Turizem",
+    ],
+  },
 ];
 
 const EXPERIENCE_LEVELS = [
@@ -317,40 +348,97 @@ export function CreateWizard() {
 
     return (
       <Card>
-        <div className="space-y-6">
+        <div className="space-y-5">
           <BackButton onClick={() => { setStep("pick_type"); setAgentType(null); }} />
 
           <div>
             <h2 className="text-xl font-bold text-foreground mb-2">
-              What kind of work are you looking for?
+              Kakšno delo iščete?
             </h2>
             <p className="text-sm text-muted">
-              Pick one or more categories, or type your own.
+              Izberite kategorije ali vpišite svoje — ločite z vejico.
             </p>
           </div>
 
-          <Input
-            id="workType"
-            placeholder="e.g. Frontend Developer, Marketing Manager, Data Analyst..."
-            value={workType}
-            onChange={(e) => setWorkType(e.target.value)}
-            autoFocus
-          />
-
-          <div className="flex flex-wrap gap-2">
-            {WORK_SUGGESTIONS.map((suggestion) => (
+          {/* Input — prominent with pencil icon */}
+          <div className="relative">
+            <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
+              <svg className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+            </div>
+            <input
+              id="workType"
+              placeholder="Vpišite poklic, npr. Elektrikar, Frontend developer..."
+              value={workType}
+              onChange={(e) => setWorkType(e.target.value)}
+              autoFocus
+              className="block w-full rounded-xl border-2 border-accent/30 bg-surface pl-10 pr-4 py-3.5 text-base text-foreground placeholder-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+            />
+            {workType && (
               <button
-                key={suggestion}
                 type="button"
-                onClick={() => toggleChip(suggestion)}
-                className={`rounded-full px-4 py-2 text-sm transition-all cursor-pointer ${
-                  selectedChips.includes(suggestion)
-                    ? "bg-gradient-to-r from-accent to-accent-hover text-white font-medium shadow-sm"
-                    : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
-                }`}
+                onClick={() => setWorkType("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-foreground transition-colors cursor-pointer"
               >
-                {suggestion}
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
+            )}
+          </div>
+
+          {/* Selected pills */}
+          {selectedChips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedChips.map((chip) => (
+                <span
+                  key={chip}
+                  className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-accent to-accent-hover text-white px-3 py-1 text-sm font-medium shadow-sm"
+                >
+                  {chip}
+                  <button
+                    type="button"
+                    onClick={() => toggleChip(chip)}
+                    className="ml-0.5 hover:bg-white/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                  >
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Grouped suggestion chips */}
+          <div className="space-y-4">
+            <p className="text-xs text-muted uppercase tracking-wider font-medium">Ali izberite iz seznama:</p>
+            {WORK_CATEGORIES.map((cat) => (
+              <div key={cat.label}>
+                <p className="text-xs font-semibold text-muted-light mb-2">{cat.label}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {cat.suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => toggleChip(suggestion)}
+                      className={`rounded-full px-3 py-1.5 text-sm transition-all cursor-pointer ${
+                        selectedChips.includes(suggestion)
+                          ? "bg-accent/15 text-accent font-medium border border-accent/30 ring-1 ring-accent/20"
+                          : "bg-surface text-muted-light border border-surface-border hover:border-accent/40 hover:text-foreground"
+                      }`}
+                    >
+                      {selectedChips.includes(suggestion) && (
+                        <svg className="inline h-3 w-3 mr-1 -ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      )}
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
 
@@ -360,7 +448,7 @@ export function CreateWizard() {
             disabled={!workType.trim()}
             className="w-full"
           >
-            Continue
+            Naprej
           </Button>
         </div>
       </Card>
