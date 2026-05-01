@@ -17,6 +17,11 @@ export const users = sqliteTable("users", {
   emailVerified: integer("emailVerified", { mode: "timestamp" }),
   image: text("image"),
   passwordHash: text("password_hash"),
+  plan: text("plan").notNull().default("free"), // "free" | "pro"
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  stripePriceId: text("stripe_price_id"),
+  stripeCurrentPeriodEnd: integer("stripe_current_period_end", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

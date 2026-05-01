@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { UpgradeModal } from "@/components/upgrade-modal";
 
 interface Company {
   id: string;
@@ -24,6 +25,7 @@ export function WatchedCompanies({
   const [careersUrl, setCareersUrl] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +46,10 @@ export function WatchedCompanies({
 
       if (!res.ok) {
         const data = await res.json();
+        if (data.error === "upgrade_required") {
+          setShowUpgrade(true);
+          return;
+        }
         setError(data.error ?? "Failed to add company");
         return;
       }
@@ -67,6 +73,12 @@ export function WatchedCompanies({
   }
 
   return (
+    <>
+    <UpgradeModal
+      open={showUpgrade}
+      onClose={() => setShowUpgrade(false)}
+      reason="companies"
+    />
     <div className="rounded-2xl border border-surface-border bg-surface p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-base font-bold text-foreground">
@@ -186,5 +198,6 @@ export function WatchedCompanies({
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -36,7 +36,7 @@ export async function searchCareerjet(
   }
 
   // Careerjet requires IP whitelisting — Vercel has no stable egress IP
-  if (process.env.VERCEL) {
+  if (true) {
     console.log("[careerjet] Skipping on Vercel (no stable IP for whitelist)");
     return [];
   }

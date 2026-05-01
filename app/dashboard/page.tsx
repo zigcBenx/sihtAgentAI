@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { requireAuth } from "@/lib/auth-utils";
 import { db } from "@/lib/db";
-import { sihtAgents, jobMatches, companyAlerts } from "@/lib/db/schema";
+import { sihtAgents, jobMatches, companyAlerts, users } from "@/lib/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
-import { Button } from "@/components/ui/button";
 import { AgentCard } from "@/components/agents/agent-card";
 import { RecentFeed } from "@/components/agents/recent-feed";
+import { NewAgentButton } from "@/components/agents/new-agent-button";
+import { getUserPlan, PLANS } from "@/lib/plans";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -19,6 +19,15 @@ export default async function DashboardPage() {
     },
     orderBy: (agents, { desc }) => [desc(agents.createdAt)],
   });
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+  });
+  const plan = getUserPlan({
+    plan: user?.plan ?? "free",
+    stripeCurrentPeriodEnd: user?.stripeCurrentPeriodEnd ?? null,
+  });
+  const maxAgents = PLANS[plan].maxAgents;
 
   // Fetch recent findings across all agents for the unified feed
   const agentIds = agents.map((a) => a.id);
@@ -132,9 +141,9 @@ export default async function DashboardPage() {
       <div className="mb-10">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-2xl font-bold text-foreground">Your Agents</h1>
-          <Link href="/dashboard/agents/new">
-            <Button>+ New Agent</Button>
-          </Link>
+          <NewAgentButton agentCount={agents.length} maxAgents={maxAgents}>
+            + New Agent
+          </NewAgentButton>
         </div>
 
         {agents.length === 0 ? (
@@ -161,9 +170,9 @@ export default async function DashboardPage() {
               Create your first agent to start scanning for jobs or watching
               companies.
             </p>
-            <Link href="/dashboard/agents/new">
-              <Button size="lg">Create Your First Agent</Button>
-            </Link>
+            <NewAgentButton agentCount={agents.length} maxAgents={maxAgents} size="lg">
+              Create Your First Agent
+            </NewAgentButton>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">

@@ -4,7 +4,7 @@ import { JobTicker } from "@/components/landing/job-ticker";
 
 export default function Home() {
   return (
-    <div className="h-dvh flex flex-col overflow-hidden">
+    <div className="min-h-dvh flex flex-col">
       {/* ─── Nav ─────────────────────────────────────────── */}
       <nav className="relative z-30 shrink-0 flex items-center justify-between px-4 py-3 sm:px-8 sm:py-4 lg:px-12">
         <span className="text-lg font-bold text-foreground">
@@ -23,7 +23,7 @@ export default function Home() {
       </nav>
 
       {/* ─── Hero — ticker as full-width backdrop ────────── */}
-      <div className="relative flex-1 min-h-0 overflow-hidden">
+      <div className="relative h-[calc(100dvh-60px)] min-h-[500px] overflow-hidden">
         {/* Ticker fills the entire background */}
         <div className="absolute inset-0 z-0 opacity-[0.35]">
           <div className="h-full px-3 sm:px-8 lg:px-12">
@@ -125,6 +125,95 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* ─── Pricing Section ──────────────────────────────── */}
+      <section id="pricing" className="relative z-10 py-16 sm:py-24 px-4 sm:px-8 bg-background">
+        <div className="mx-auto max-w-3xl text-center mb-10 sm:mb-14">
+          <h2 className="text-2xl sm:text-4xl font-bold text-foreground mb-3">
+            Simple pricing
+          </h2>
+          <p className="text-sm sm:text-base text-muted">
+            Start free, upgrade when you need more.
+          </p>
+        </div>
+
+        <div className="mx-auto max-w-2xl grid sm:grid-cols-2 gap-4 sm:gap-6">
+          {/* Free */}
+          <div className="rounded-2xl border border-surface-border bg-surface p-6 sm:p-8">
+            <h3 className="text-lg font-bold text-foreground">Free</h3>
+            <div className="mt-2 mb-5">
+              <span className="text-3xl font-bold text-foreground">$0</span>
+              <span className="text-sm text-muted">/month</span>
+            </div>
+            <ul className="space-y-2.5 text-sm text-muted-light mb-6">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                1 agent
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                Weekly scans
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                3 watched companies
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                10 visible results
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                Email notifications
+              </li>
+            </ul>
+            <Link href="/register">
+              <Button variant="secondary" size="lg" className="w-full">
+                Start Free
+              </Button>
+            </Link>
+          </div>
+
+          {/* Pro */}
+          <div className="rounded-2xl border-2 border-accent bg-surface p-6 sm:p-8 relative">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+              Popular
+            </span>
+            <h3 className="text-lg font-bold text-foreground">Pro</h3>
+            <div className="mt-2 mb-5">
+              <span className="text-3xl font-bold text-foreground">$4.99</span>
+              <span className="text-sm text-muted">/month</span>
+            </div>
+            <ul className="space-y-2.5 text-sm text-muted-light mb-6">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                5 agents
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                Daily scans
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                20 watched companies
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                Unlimited results
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                Email notifications
+              </li>
+            </ul>
+            <Link href="/register">
+              <Button size="lg" className="w-full">
+                Go Pro
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

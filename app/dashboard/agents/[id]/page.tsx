@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth-utils";
 import { db } from "@/lib/db";
-import { sihtAgents, jobMatches, runLogs } from "@/lib/db/schema";
+import { sihtAgents, jobMatches, runLogs, users } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { AgentDetailClient } from "@/components/agents/agent-detail-client";
 import { WatchedCompanies } from "@/components/agents/watched-companies";
 import { JobMatches } from "@/components/agents/job-matches";
 import { CompanyAlerts } from "@/components/agents/company-alerts";
 import { RunLogs } from "@/components/agents/run-logs";
+import { getUserPlan, PLANS } from "@/lib/plans";
 
 export default async function AgentDetailPage({
   params,
@@ -44,6 +45,15 @@ export default async function AgentDetailPage({
     limit: 10,
   });
 
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+  });
+  const plan = getUserPlan({
+    plan: user?.plan ?? "free",
+    stripeCurrentPeriodEnd: user?.stripeCurrentPeriodEnd ?? null,
+  });
+  const visibleResults = PLANS[plan].visibleResults;
+
   const isJobSearch = agent.agentType === "job_search";
 
   const settingsData = {
@@ -71,7 +81,7 @@ export default async function AgentDetailPage({
         {/* Type-specific content rendered as children */}
         {isJobSearch ? (
           <>
-            <JobMatches matches={matches} agentId={agent.id} />
+            <JobMatches matches={matches} agentId={agent.id} visibleResults={visibleResults} />
             <RunLogs logs={logs} />
           </>
         ) : (

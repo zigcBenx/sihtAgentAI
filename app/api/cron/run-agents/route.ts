@@ -5,6 +5,7 @@ import { sihtAgents } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { runAgent } from "@/lib/jobs/runner";
 import { sendAgentResultsEmail } from "@/lib/email";
+import { getUserPlan, PLANS } from "@/lib/plans";
 
 export const maxDuration = 60;
 
@@ -20,7 +21,7 @@ export async function GET() {
     where: eq(sihtAgents.isActive, true),
     with: {
       watchedCompanies: true,
-      user: { columns: { email: true } },
+      user: { columns: { email: true, plan: true, stripeCurrentPeriodEnd: true } },
     },
   });
 
@@ -29,7 +30,23 @@ export async function GET() {
   const results = [];
 
   for (const agent of activeAgents) {
-    console.log(`[cron] Running agent ${agent.id} (${agent.name}, type=${agent.agentType})`);
+    const userPlan = getUserPlan({
+      plan: agent.user.plan ?? "free",
+      stripeCurrentPeriodEnd: agent.user.stripeCurrentPeriodEnd ?? null,
+    });
+    const limits = PLANS[userPlan];
+
+    // Frequency gating: free users only run weekly
+    if (limits.frequency === "weekly" && agent.lastRunAt) {
+      const daysSinceLastRun =
+        (Date.now() - agent.lastRunAt.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceLastRun < 6.5) {
+        console.log(`[cron] Skipping agent ${agent.id} (free plan, last run ${daysSinceLastRun.toFixed(1)}d ago)`);
+        continue;
+      }
+    }
+
+    console.log(`[cron] Running agent ${agent.id} (${agent.name}, type=${agent.agentType}, plan=${userPlan})`);
     try {
       const result = await runAgent(agent);
       console.log(`[cron] Agent ${agent.id} done: ${result.newJobMatches} new jobs, ${result.newCompanyAlerts} new alerts`);
@@ -37,15 +54,25 @@ export async function GET() {
 
       // Send email notification if new results were found
       if (result.newJobMatches > 0 || result.newCompanyAlerts > 0) {
-        console.log(`[cron] Sending email to ${agent.user.email} for agent ${agent.id} (${result.newJobItems.length} jobs, ${result.newAlertItems.length} alerts)`);
+        // Cap email results for free users
+        const emailJobs =
+          limits.visibleResults < Infinity
+            ? result.newJobItems.slice(0, limits.visibleResults)
+            : result.newJobItems;
+        const emailAlerts =
+          limits.visibleResults < Infinity
+            ? result.newAlertItems.slice(0, limits.visibleResults)
+            : result.newAlertItems;
+
+        console.log(`[cron] Sending email to ${agent.user.email} for agent ${agent.id} (${emailJobs.length} jobs, ${emailAlerts.length} alerts)`);
         try {
           await sendAgentResultsEmail({
             to: agent.user.email,
             agentName: result.agentName,
             agentType: result.agentType,
             agentId: result.agentId,
-            newJobs: result.newJobItems,
-            newAlerts: result.newAlertItems,
+            newJobs: emailJobs,
+            newAlerts: emailAlerts,
           });
           console.log(`[cron] Email sent successfully for agent ${agent.id}`);
         } catch (emailErr) {

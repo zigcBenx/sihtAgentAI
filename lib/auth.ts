@@ -43,15 +43,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           name: user.name,
           email: user.email,
+          plan: user.plan ?? "free",
         };
       },
     }),
   ],
   callbacks: {
+    jwt({ token, user }) {
+      if (user) {
+        token.plan = (user as { plan?: string }).plan ?? "free";
+      }
+      return token;
+    },
     session({ session, token }) {
       if (token.sub) {
         session.user.id = token.sub;
       }
+      session.user.plan = (token.plan as string) ?? "free";
       return session;
     },
   },

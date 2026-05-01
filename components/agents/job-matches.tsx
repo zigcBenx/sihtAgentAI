@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { UpgradeModal } from "@/components/upgrade-modal";
 
 interface JobMatch {
   id: string;
@@ -42,12 +43,15 @@ function timeAgo(date: Date): string {
 export function JobMatches({
   matches: initialMatches,
   agentId,
+  visibleResults = Infinity,
 }: {
   matches: JobMatch[];
   agentId: string;
+  visibleResults?: number;
 }) {
   const [matches, setMatches] = useState(initialMatches);
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   async function patchMatch(matchId: string, body: { favorited?: boolean; discarded?: boolean }) {
     const res = await fetch(`/api/agents/${agentId}/matches/${matchId}`, {
@@ -124,6 +128,12 @@ export function JobMatches({
   ];
 
   return (
+    <>
+    <UpgradeModal
+      open={showUpgrade}
+      onClose={() => setShowUpgrade(false)}
+      reason="results"
+    />
     <Card>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -170,111 +180,158 @@ export function JobMatches({
         </p>
       ) : (
         <div className="space-y-6">
-          {[...grouped.entries()].map(([tier, items]) => {
-            const config = RELEVANCE_CONFIG[tier as keyof typeof RELEVANCE_CONFIG];
-            return (
-              <div key={tier}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={`h-2 w-2 rounded-full ${config.dotColor}`} />
-                  <span className={`text-xs font-semibold uppercase tracking-wider ${config.color}`}>
-                    {config.label}
-                  </span>
-                  <span className="text-xs text-muted">({items.length})</span>
-                </div>
-                <div className="space-y-2">
-                  {items.map((match) => (
-                    <a
-                      key={match.id}
-                      href={match.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`flex items-start justify-between gap-3 rounded-xl px-4 py-3 transition-colors group ${
-                        match.favorited
-                          ? "bg-red-500/5 hover:bg-red-500/10"
-                          : "bg-surface-light hover:bg-surface-border/50"
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          {!match.seen && (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
-                          )}
-                          <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors truncate">
-                            {match.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted">
-                          <span>{match.company}</span>
-                          {match.location && (
-                            <>
-                              <span className="text-surface-border">·</span>
-                              <span>{match.location}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="shrink-0 flex items-center gap-2">
-                        <div className="flex flex-col items-end gap-1 mr-1">
-                          <span className="text-[10px] text-muted">{timeAgo(match.foundAt)}</span>
-                          <span className="text-[10px] text-muted/50">{match.source}</span>
-                        </div>
+          {(() => {
+            let runningIndex = 0;
+            return [...grouped.entries()].map(([tier, items]) => {
+              const config = RELEVANCE_CONFIG[tier as keyof typeof RELEVANCE_CONFIG];
+              return (
+                <div key={tier}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`h-2 w-2 rounded-full ${config.dotColor}`} />
+                    <span className={`text-xs font-semibold uppercase tracking-wider ${config.color}`}>
+                      {config.label}
+                    </span>
+                    <span className="text-xs text-muted">({items.length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {items.map((match) => {
+                      const isBlurred = runningIndex >= visibleResults;
+                      runningIndex++;
 
-                        {/* Favorite button */}
-                        <button
-                          onClick={(e) => toggleFavorite(e, match)}
-                          className={`p-1.5 rounded-lg transition-colors ${
+                      if (isBlurred) {
+                        return (
+                          <div
+                            key={match.id}
+                            className="flex items-start justify-between gap-3 rounded-xl px-4 py-3 bg-surface-light select-none"
+                          >
+                            <div className="min-w-0 flex-1 blur-[6px] pointer-events-none">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-sm font-medium text-foreground truncate">
+                                  {match.title}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted">
+                                <span>{match.company}</span>
+                              </div>
+                            </div>
+                            <div className="shrink-0">
+                              <span className="text-[10px] text-muted blur-[4px]">{match.source}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <a
+                          key={match.id}
+                          href={match.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex items-start justify-between gap-3 rounded-xl px-4 py-3 transition-colors group ${
                             match.favorited
-                              ? "text-red-500 hover:text-red-600"
-                              : "text-muted/40 hover:text-red-400"
+                              ? "bg-red-500/5 hover:bg-red-500/10"
+                              : "bg-surface-light hover:bg-surface-border/50"
                           }`}
-                          title={match.favorited ? "Remove from favorites" : "Add to favorites"}
                         >
-                          <svg
-                            className="h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill={match.favorited ? "currentColor" : "none"}
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                            />
-                          </svg>
-                        </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              {!match.seen && (
+                                <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
+                              )}
+                              <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors truncate">
+                                {match.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted">
+                              <span>{match.company}</span>
+                              {match.location && (
+                                <>
+                                  <span className="text-surface-border">·</span>
+                                  <span>{match.location}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-2">
+                            <div className="flex flex-col items-end gap-1 mr-1">
+                              <span className="text-[10px] text-muted">{timeAgo(match.foundAt)}</span>
+                              <span className="text-[10px] text-muted/50">{match.source}</span>
+                            </div>
 
-                        {/* Discard / Restore button */}
-                        {activeTab === "discarded" ? (
-                          <button
-                            onClick={(e) => toggleDiscard(e, match)}
-                            className="p-1.5 rounded-lg text-muted/40 hover:text-emerald-500 transition-colors"
-                            title="Restore"
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-                            </svg>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => toggleDiscard(e, match)}
-                            className="p-1.5 rounded-lg text-muted/40 hover:text-red-400 transition-colors"
-                            title="Discard"
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </a>
-                  ))}
+                            {/* Favorite button */}
+                            <button
+                              onClick={(e) => toggleFavorite(e, match)}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                match.favorited
+                                  ? "text-red-500 hover:text-red-600"
+                                  : "text-muted/40 hover:text-red-400"
+                              }`}
+                              title={match.favorited ? "Remove from favorites" : "Add to favorites"}
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill={match.favorited ? "currentColor" : "none"}
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                                />
+                              </svg>
+                            </button>
+
+                            {/* Discard / Restore button */}
+                            {activeTab === "discarded" ? (
+                              <button
+                                onClick={(e) => toggleDiscard(e, match)}
+                                className="p-1.5 rounded-lg text-muted/40 hover:text-emerald-500 transition-colors"
+                                title="Restore"
+                              >
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => toggleDiscard(e, match)}
+                                className="p-1.5 rounded-lg text-muted/40 hover:text-red-400 transition-colors"
+                                title="Discard"
+                              >
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
+
+          {/* Upgrade banner when results are blurred */}
+          {visibleResults < Infinity && filtered.length > visibleResults && (
+            <div className="text-center py-4 rounded-xl bg-gradient-to-b from-transparent to-accent/5 border border-accent/10">
+              <p className="text-sm text-muted mb-2">
+                {filtered.length - visibleResults} more results hidden
+              </p>
+              <button
+                onClick={() => setShowUpgrade(true)}
+                className="text-sm font-semibold text-accent hover:text-accent-light transition-colors cursor-pointer"
+              >
+                Upgrade to Pro to see all results
+              </button>
+            </div>
+          )}
         </div>
       )}
     </Card>
+    </>
   );
 }
