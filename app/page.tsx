@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { JobTicker } from "@/components/landing/job-ticker";
+import { HowItWorks } from "@/components/landing/how-it-works";
 
 export default function Home() {
   return (
@@ -125,6 +126,9 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* ─── How It Works ──────────────────────────────────── */}
+      <HowItWorks />
 
       {/* ─── Pricing Section ──────────────────────────────── */}
       <section id="pricing" className="relative z-10 py-16 sm:py-24 px-4 sm:px-8 bg-background">
