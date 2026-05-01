@@ -138,16 +138,16 @@ export default async function DashboardPage() {
   return (
     <div>
       {/* ─── Agents Section ─────────────────────────────── */}
-      <div className="mb-10">
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl font-bold text-foreground">Your Agents</h1>
+      <div className="mb-8 sm:mb-10">
+        <div className="flex items-center justify-between mb-4 sm:mb-5">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Your Agents</h1>
           <NewAgentButton agentCount={agents.length} maxAgents={maxAgents}>
             + New Agent
           </NewAgentButton>
         </div>
 
         {agents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-surface-border bg-surface p-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="rounded-2xl border border-dashed border-surface-border bg-surface p-8 sm:p-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/10 to-accent-light/10">
               <svg
                 className="h-7 w-7 text-muted"

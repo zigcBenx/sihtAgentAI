@@ -19,8 +19,8 @@ const variantStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  default: "px-5 py-2.5 text-sm",
-  lg: "px-6 py-3.5 text-base",
+  default: "px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm",
+  lg: "px-5 sm:px-6 py-3 sm:py-3.5 text-sm sm:text-base",
 };
 
 export function Button({

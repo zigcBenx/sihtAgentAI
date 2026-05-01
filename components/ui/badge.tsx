@@ -15,10 +15,10 @@ const variantStyles: Record<BadgeVariant, string> = {
 export function Badge({ variant = "neutral", children }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${variantStyles[variant]}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${variantStyles[variant]}`}
     >
       {variant === "live" && (
-        <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+        <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-accent animate-pulse" />
       )}
       {children}
     </span>

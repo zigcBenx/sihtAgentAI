@@ -103,12 +103,12 @@ export function AgentCard({ agent }: { agent: Agent }) {
   return (
     <Link href={`/dashboard/agents/${agent.id}`} className="block group">
       <div
-        className={`rounded-2xl border ${borderClass} bg-surface p-5 transition-all hover:opacity-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 ${agent.isActive ? "border-l-[3px] border-l-accent/60" : ""}`}
+        className={`rounded-2xl border ${borderClass} bg-surface p-3.5 sm:p-5 overflow-hidden transition-all hover:opacity-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 ${agent.isActive ? "border-l-[3px] border-l-accent/60" : ""}`}
       >
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-2.5 sm:gap-4">
           {/* Robot icon */}
           <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconBgClass}`}
+            className={`flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl ${iconBgClass}`}
           >
             {isJobSearch ? (
               <JobSearchRobotIcon active={agent.isActive} />
@@ -119,12 +119,12 @@ export function AgentCard({ agent }: { agent: Agent }) {
 
           {/* Content */}
           <div className="min-w-0 flex-1">
-            {/* Name row — no wrap */}
-            <div className="flex items-center gap-2 mb-1 min-w-0">
-              <h3 className="text-base font-bold text-foreground truncate min-w-0">
+            {/* Name row */}
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1 min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-foreground truncate min-w-0">
                 {agent.name}
               </h3>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 {totalNew > 0 && (
                   <Badge variant="success">{totalNew} new</Badge>
                 )}
@@ -134,7 +134,7 @@ export function AgentCard({ agent }: { agent: Agent }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 text-sm text-muted">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted">
               <span>{stat}</span>
               <span className="text-surface-border">·</span>
               {agent.lastRunAt ? (
@@ -145,24 +145,24 @@ export function AgentCard({ agent }: { agent: Agent }) {
             </div>
 
             {(agent.profileSummary || agent.desiredRole) && (
-              <p className="text-xs text-muted mt-1.5 truncate">
+              <p className="text-xs text-muted mt-1.5 truncate hidden sm:block">
                 {agent.profileSummary ?? agent.desiredRole}
               </p>
             )}
           </div>
 
           {/* Toggle */}
-          <div className="shrink-0 pt-1">
+          <div className="shrink-0 pt-0.5 sm:pt-1">
             <button
               onClick={handleToggle}
               disabled={toggling}
-              className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors cursor-pointer ${
+              className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-10 items-center rounded-full transition-colors cursor-pointer ${
                 agent.isActive ? "bg-accent" : "bg-surface-border"
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 rounded-full bg-surface shadow-sm border border-surface-border transition-transform ${
-                  agent.isActive ? "translate-x-5 border-accent/30" : "translate-x-1"
+                className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-surface shadow-sm border border-surface-border transition-transform ${
+                  agent.isActive ? "translate-x-[18px] sm:translate-x-5 border-accent/30" : "translate-x-0.5 sm:translate-x-1"
                 }`}
               />
             </button>

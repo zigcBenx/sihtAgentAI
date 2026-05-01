@@ -60,7 +60,7 @@ export function RecentFeed({ items: initialItems }: { items: FeedItem[] }) {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-foreground mb-4">
+      <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">
         Recent Findings
       </h2>
 
@@ -71,31 +71,31 @@ export function RecentFeed({ items: initialItems }: { items: FeedItem[] }) {
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`flex items-center justify-between gap-3 rounded-xl border border-transparent px-4 py-3 transition-all group ${
+            className={`flex items-center justify-between gap-2 sm:gap-3 rounded-xl border border-transparent px-3 sm:px-4 py-2.5 sm:py-3 transition-all group ${
               item.favorited
                 ? "bg-red-500/5 hover:bg-red-500/10 hover:border-red-500/20"
                 : "bg-surface hover:bg-surface-light hover:border-surface-border/50"
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               {!item.seen && (
                 <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
               )}
               <div className="min-w-0">
-                <span className="text-sm text-foreground group-hover:text-accent transition-colors truncate block">
+                <span className="text-xs sm:text-sm text-foreground group-hover:text-accent transition-colors truncate block">
                   {item.title}
                 </span>
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <span>{item.subtitle}</span>
-                  <span className="text-surface-border">·</span>
-                  <span>{item.agentName}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted">
+                  <span className="truncate">{item.subtitle}</span>
+                  <span className="text-surface-border shrink-0">·</span>
+                  <span className="shrink-0">{item.agentName}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <span
-                className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                className={`text-[10px] font-medium px-1.5 py-0.5 rounded hidden sm:inline ${
                   item.type === "alert"
                     ? "bg-accent/10 text-accent"
                     : "bg-surface-light text-muted"
@@ -103,7 +103,7 @@ export function RecentFeed({ items: initialItems }: { items: FeedItem[] }) {
               >
                 {item.type === "alert" ? "Watch" : "Search"}
               </span>
-              <span className="text-[10px] text-muted">
+              <span className="text-[10px] text-muted hidden sm:inline">
                 {timeAgo(item.foundAt)}
               </span>
 
@@ -112,7 +112,7 @@ export function RecentFeed({ items: initialItems }: { items: FeedItem[] }) {
                 <>
                   <button
                     onClick={(e) => handleFavorite(e, item)}
-                    className={`p-1.5 rounded-lg transition-colors ${
+                    className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
                       item.favorited
                         ? "text-red-500 hover:text-red-600"
                         : "text-muted/40 hover:text-red-400"
@@ -120,7 +120,7 @@ export function RecentFeed({ items: initialItems }: { items: FeedItem[] }) {
                     title={item.favorited ? "Remove from favorites" : "Add to favorites"}
                   >
                     <svg
-                      className="h-4 w-4"
+                      className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                       viewBox="0 0 24 24"
                       fill={item.favorited ? "currentColor" : "none"}
                       stroke="currentColor"
@@ -135,10 +135,10 @@ export function RecentFeed({ items: initialItems }: { items: FeedItem[] }) {
                   </button>
                   <button
                     onClick={(e) => handleDiscard(e, item)}
-                    className="p-1.5 rounded-lg text-muted/40 hover:text-red-400 transition-colors"
+                    className="p-1 sm:p-1.5 rounded-lg text-muted/40 hover:text-red-400 transition-colors"
                     title="Discard"
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
                   </button>
